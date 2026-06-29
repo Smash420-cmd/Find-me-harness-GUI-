@@ -1,0 +1,23 @@
+{
+  "name": "the-harness",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "AI proposes, the engine disposes. A domain-free verification engine; RAM is the reference chassis.",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "analyze": "node scripts/analyze-seam.mjs"
+  },
+  "dependencies": {
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^22.7.0",
+    "fast-check": "^3.22.0",
+    "typescript": "^5.6.2",
+    "vitest": "^2.1.1"
+  }
+}
