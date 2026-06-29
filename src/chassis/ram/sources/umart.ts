@@ -55,6 +55,13 @@ export function interpretUmartFields(
   };
 }
 
+/** The proof-shot caption. Built from the RENDER-read live state, never the
+ * observe-time price, so the caption on the trust artifact cannot disagree with
+ * the screenshot it sits on (F1 re-review). */
+export function umartProofCaption(title: string, live: RamLiveState): string {
+  return `${title} @ $${live.priceAud} in stock`;
+}
+
 /** Category pages per generation (discovered from the live nav). */
 const CATEGORY: Record<RamSpecFields["generation"], string> = {
   DDR5: `${ORIGIN}/pc-parts/computer-parts/memory-ram/ddr5-ram-1085`,

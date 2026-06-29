@@ -1,8 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { UmartSource } from "./umart.js";
+import { UmartSource, umartProofCaption, interpretUmartFields } from "./umart.js";
 import { parseRamSpec } from "../spec.js";
-import type { Spec } from "../../../types/index.js";
-import type { RamSpecFields } from "../types.js";
+import type { Candidate, Spec } from "../../../types/index.js";
+import type { RamCandidateData, RamSpecFields } from "../types.js";
 
 // A tiny in-memory Umart: one category page + two product pages.
 const LISTING = `
@@ -52,5 +52,28 @@ describe("Task 8 — UmartSource (injected fetch)", () => {
     const live = await s.read(c!);
     expect(live.availability).toBe("in_stock");
     expect(live.priceAud).toBeGreaterThan(0);
+  });
+
+  it("proof caption uses the RENDER-read price, not the observe-time price (F1 re-review)", () => {
+    const candidate: Candidate<RamCandidateData> = {
+      key: "92533",
+      source: "umart",
+      data: {
+        productId: "92533",
+        title: "Corsair 32GB (2x16GB) 6000MHz DDR5 RAM",
+        url: "https://umart/92533",
+        attributes: { generation: "DDR5", capacityGb: 32, dataRateMtps: 6000 },
+        priceAud: 999, // stale observe-time price
+      },
+    };
+    // render reports a DIFFERENT (fresh) price
+    const live = interpretUmartFields(
+      { priceContent: "619.00", availabilityHref: "http://schema.org/InStock", title: "Corsair 32GB (2x16GB) 6000MHz DDR5 RAM - Umart.com.au" },
+      candidate,
+    );
+    expect(live.priceAud).toBe(619);
+    const caption = umartProofCaption(candidate.data.title, live);
+    expect(caption).toContain("$619"); // the render price
+    expect(caption).not.toContain("999"); // never the stale observe-time price
   });
 });

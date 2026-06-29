@@ -12,7 +12,12 @@ import { runLoop } from "../engine/loop/index.js";
 import { EphemeralSandbox } from "../engine/verify/index.js";
 import { VerificationTier, type Spec } from "../types/index.js";
 import { createRamChassis, parseRamSpec, type RamSpecFields } from "../chassis/ram/index.js";
-import { UmartSource, UMART_RENDER_SELECTORS, interpretUmartFields } from "../chassis/ram/sources/umart.js";
+import {
+  UmartSource,
+  UMART_RENDER_SELECTORS,
+  interpretUmartFields,
+  umartProofCaption,
+} from "../chassis/ram/sources/umart.js";
 import { PlaywrightValidator } from "../providers/validation/playwright.js";
 
 const live = process.env.RUN_LIVE === "1";
@@ -30,10 +35,11 @@ const live = process.env.RUN_LIVE === "1";
           env.sandbox.run(async () => {
             const { proof, fields } = await validator.capture({
               url: c.data.url,
-              mustShow: `${c.data.title} @ $${c.data.priceAud} in stock`,
+              mustShow: c.data.title,
               extract: UMART_RENDER_SELECTORS,
             });
-            return { proof, live: interpretUmartFields(fields, c) };
+            const live = interpretUmartFields(fields, c);
+            return { proof: { ...proof, shows: umartProofCaption(c.data.title, live) }, live };
           }),
       });
 

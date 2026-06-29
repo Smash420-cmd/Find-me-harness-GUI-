@@ -111,8 +111,8 @@ the user asked for, not "close enough."
 
 | ID | Follow-up | Origin | Type | State |
 | :-- | :-- | :-- | :-- | :-- |
-| **F1** | Confirm liveness on the same render that produces the proof-shot (Tier 2 cheap pre-filter; Tier 3 authoritative on rendered DOM) | Decision 1 | new task (size below) | **approved — implementing; re-review required** |
-| **F2** | Add a test pinning the degraded score to 0.42 | Decision 2 | test | queued |
+| **F1** | Confirm liveness on the same render that produces the proof-shot (Tier 2 cheap pre-filter; Tier 3 authoritative on rendered DOM) | Decision 1 | task | ✅ **done — re-reviewed & re-signed** (see addendum) |
+| **F2** | Pin the degrade constants (0.42 RAM / 0.48 engine) so they can't drift | Decision 2 | test | ✅ done |
 | **F3** | Future-spec: "selectors-changed / suspiciously-empty" alarm | Decision 3 | future spec (gated) | logged, not built |
 
 ### F1 size estimate — **Medium**
@@ -161,3 +161,35 @@ trust-bearing module — this sign-off does **not** extend to the post-F1 code: 
 signed again. F3 remains a logged future spec, not built.
 
 _Reviewed by the repo owner on 2026-06-29._
+
+---
+
+## Addendum — F1 re-reviewed & re-signed (2026-06-29)
+
+F1 modified `chassis/ram/verify.ts` (a trust-bearing module), so it required a
+separate re-review. **Re-review approved**, with one change applied before
+signing:
+
+**(a) Caption fix.** The proof-shot caption (`ProofShot.shows`) now derives from
+the **render-read** price, not the observe-time `priceAud`. The caption sits on
+the trust artifact, so it must not show a number that can disagree with the
+screenshot it labels. Implemented via `umartProofCaption(title, live)` built from
+the render's `live` state in the `captureProof` closure; `mustShow` no longer
+carries the price. Locked by a unit test
+(`sources/umart.test.ts` — caption uses the render price, never the stale one).
+
+**(b) Fail-closed posture now also governs Tier 3.** As accepted in Decision 3,
+the in-stock + SKU predicates are fail-closed; post-F1 the **rendered** DOM is
+subject to the same posture (an unreadable selector on the render → `out_of_stock`
+→ drop → possible empty boards, never wrong ones). This is the accepted
+behaviour. The widened surface remains covered by **F3** (the still-gated
+"selectors-changed / suspiciously-empty" alarm) — logged, not built.
+
+**Re-review confirmed:** shared `disqualify` predicate (both tiers apply identical
+correct-AND-real logic); "render wins" on disagreement (drop); engine
+`engine/verify/` core unchanged; F2 two-sided constant lock (RAM 0.42 / engine
+0.48). Offline suite green; live e2e green.
+
+**Status:** `chassis/ram/verify.ts` (post-F1) is **RE-SIGNED**.
+
+_Re-reviewed and re-signed by the repo owner on 2026-06-29._

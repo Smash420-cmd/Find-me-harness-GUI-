@@ -14,7 +14,12 @@ import { fromStructured, fromConversation } from "../engine/converge/index.js";
 import type { Spec, VerifiedResult } from "../types/index.js";
 import { createRamChassis, parseRamSpec, type RamSpecFields } from "../chassis/ram/index.js";
 import type { RamCandidateData } from "../chassis/ram/types.js";
-import { UmartSource, UMART_RENDER_SELECTORS, interpretUmartFields } from "../chassis/ram/sources/umart.js";
+import {
+  UmartSource,
+  UMART_RENDER_SELECTORS,
+  interpretUmartFields,
+  umartProofCaption,
+} from "../chassis/ram/sources/umart.js";
 import { PlaywrightValidator } from "../providers/validation/playwright.js";
 import { HeuristicLLMProvider } from "../providers/llm/heuristic.js";
 import { renderPage } from "./page.js";
@@ -39,10 +44,12 @@ export function createHarnessServer(opts: HarnessServerOptions = {}): Server {
       env.sandbox.run(async () => {
         const { proof, fields } = await validator.capture({
           url: c.data.url,
-          mustShow: `${c.data.title} @ $${c.data.priceAud} in stock`,
+          mustShow: c.data.title,
           extract: UMART_RENDER_SELECTORS,
         });
-        return { proof, live: interpretUmartFields(fields, c) };
+        const live = interpretUmartFields(fields, c);
+        // Caption derives from the render, not the observe-time price (F1 re-review).
+        return { proof: { ...proof, shows: umartProofCaption(c.data.title, live) }, live };
       }),
   });
 
