@@ -43,9 +43,11 @@ src/
 | 6 | `providers/source` — capability matrix | ✅ |
 | 7 | ⭐ `chassis/ram` — spec / verify / rank (human-gated) | ✅ |
 | — | `/analyze` seam gate (E6) | ✅ |
-| 8 | `chassis/ram/sources/umart` — live source | ⏳ live env |
-| 9 | `ui` wrapper — two doors + proof-shot board | ⏳ live env |
-| 10 | end-to-end against Umart | ⏳ live env |
+| 8 | `chassis/ram/sources/umart` — live source | ✅ |
+| 9 | `ui` wrapper — two doors + proof-shot board | ✅ |
+| 10 | end-to-end against Umart (`RUN_LIVE=1`) | ✅ |
+
+**All tasks complete.** Run the GUI: `npm run ui` → http://localhost:3000
 
 v1 source: **Umart** (umart.com.au) — `{ hasApi:false, hasStockFlag:true, rendersClean:true }`.
 
