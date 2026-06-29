@@ -1,7 +1,7 @@
 # Trust-Floor Review & Sign-Off
 
 **Scope:** the two human-gated, trust-bearing modules (Constitution Laws 3 & 8).
-**Reviewer:** teamsmashau@gmail.com (repo owner)
+**Reviewer:** repo owner
 **Date:** 2026-06-29
 **Branch reviewed:** `claude/please-read-ybtfse`
 **Status:** ✅ **SIGNED OFF**, with four recorded decisions and three scoped follow-ups.
@@ -47,15 +47,18 @@ Because they are two fetches moments apart, the screenshot is **not guaranteed t
 be the same render the liveness decision was made on.** A kit could flip state
 between the two.
 
-**Decision.** Unify them: the liveness/stock/price decision and the proof-shot
-must come from **one render**, so the screenshot shows exactly the DOM the
-verification decision was taken on. Tier 3 becomes "render → read-and-decide →
-capture," and is the authoritative liveness gate; if the render disagrees with a
-cheap pre-check, the render wins.
+**Decision.** Liveness is **confirmed on the same render that produces the
+proof-shot.** Tier 2 remains a **cheap Node-fetch pre-filter** (drops obvious
+wrong-SKU / sold-out candidates without rendering); Tier 3 renders the survivors
+once and is the **authoritative confirmation on that rendered DOM** — it
+re-checks SKU + in-stock on the very DOM it screenshots, and only that render
+backs the card. If the render disagrees with the cheap pre-filter, the render
+wins (drop).
 
-**Status:** accepted, **scoped as its own task — NOT yet implemented.** Size
-estimate recorded below (see "Follow-up F1"). Do not start until separately
-approved.
+**Status:** accepted and **approved for implementation** (design calls as in F1
+below). Because it modifies `chassis/ram/verify.ts`, the post-F1 verify rules
+require a **separate re-review** before they are signed again (this sign-off
+covers only the pre-F1 code).
 
 ### Decision 2 — Degrade / score constants (0.6 / 0.7 / 1.0) → **ACCEPTED, LOCK THEM**
 
@@ -108,7 +111,7 @@ the user asked for, not "close enough."
 
 | ID | Follow-up | Origin | Type | State |
 | :-- | :-- | :-- | :-- | :-- |
-| **F1** | Unify Tier-2 liveness decision and Tier-3 proof into a single render | Decision 1 | new task (size below) | awaiting approval |
+| **F1** | Confirm liveness on the same render that produces the proof-shot (Tier 2 cheap pre-filter; Tier 3 authoritative on rendered DOM) | Decision 1 | new task (size below) | **approved — implementing; re-review required** |
 | **F2** | Add a test pinning the degraded score to 0.42 | Decision 2 | test | queued |
 | **F3** | Future-spec: "selectors-changed / suspiciously-empty" alarm | Decision 3 | future spec (gated) | logged, not built |
 
@@ -124,11 +127,11 @@ does **not** move — only the chassis tier rules and the validator contract.
 - `src/providers/validation/playwright.ts` — after `goto`, read the
   availability/price/title from the rendered page, then screenshot; return
   `{ proof, fields }`. (~20 lines)
-- `src/chassis/ram/verify.ts` — Tier 3 becomes the authoritative liveness gate:
-  render → run the in-stock predicate + `matchesSpec` on the **render's** fields →
-  `ok:false` (drop) on disagreement, else `ok:true` + proof. Keep Tier-2 Node
-  fetch as a **cheap pre-filter** so only survivors are rendered (preserves the
-  cost-control tiering). (~40–50 lines reworked)
+- `src/chassis/ram/verify.ts` — Tier 2 stays a **cheap Node-fetch pre-filter**;
+  Tier 3 **confirms liveness on the same render it screenshots**: render → run the
+  in-stock predicate + `matchesSpec` on the **render's** fields → `ok:false`
+  (drop) on disagreement, else `ok:true` + proof. Only Tier-2 survivors are
+  rendered (preserves the cost-control tiering). (~40–50 lines reworked)
 - `src/ui/server.ts` + `src/e2e/ram.e2e.test.ts` — update the `captureProof`
   wiring to the new return shape. (~10 lines)
 - `src/chassis/ram/ram.test.ts` — update the fake `captureProof`/validator to the
@@ -150,8 +153,11 @@ does **not** move — only the chassis tier rules and the validator contract.
 
 ## Sign-off
 
-The two trust-floor modules are **approved for use** as implemented, subject to
-the four decisions above. Follow-ups F1–F3 are recorded and **not yet started**;
-F1 awaits explicit go-ahead after this size estimate is read.
+The two trust-floor modules are **approved for use** as implemented (pre-F1),
+subject to the four decisions above. F1 is **approved** (design calls as
+recommended) and F2 queued. Because F1 modifies `chassis/ram/verify.ts` — a
+trust-bearing module — this sign-off does **not** extend to the post-F1 code: a
+**separate re-review** of the changed verify rules is required before they are
+signed again. F3 remains a logged future spec, not built.
 
-_Reviewed by teamsmashau@gmail.com on 2026-06-29._
+_Reviewed by the repo owner on 2026-06-29._
