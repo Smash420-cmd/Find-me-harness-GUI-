@@ -114,18 +114,25 @@ words mean.)
 
 ---
 
-## OPEN QUESTION — resolve before Phase 2 (plan)
+## RESOLVED — v1 source (clarify answered)
 
-**Which single retailer is the v1 source?** The playbook requires picking **one**
-cleanest-rendering retailer for v1 (one source means no circuit-breakers needed
-yet). This must be answered before planning, because the source's declared
-capabilities (has-API? has-stock-flag? renders-clean?) determine which
-verification tiers are even available.
+**The v1 source is Umart (umart.com.au).** Chosen as the single, cleanest-
+rendering retailer for v1 (one source ⇒ no circuit-breakers needed yet). An
+Australian PC-parts retailer with a large RAM catalogue, server-rendered product
+pages, a clear per-listing in-stock / out-of-stock state, and light bot defenses
+— well suited to the tiers RAM's liveness check relies on.
 
-*Candidate considerations:* clean, server-rendered product pages (good for Tier
-2/3); a stable "in stock / sold out" indicator; ideally an unofficial JSON
-endpoint (enables Tier 1); permissive enough to capture for proof. **To be
-decided with the user at the Phase-1 → Phase-2 boundary.**
+**Assumed capability matrix (to be verified for real in Phase 4):**
+
+| Capability | Value | Consequence |
+| :--- | :--- | :--- |
+| `hasApi` | `false` | Tier 1 (API) skipped for now; promote if a JSON endpoint is found. |
+| `hasStockFlag` | `true` | Tier 2 (DOM) reads "In Stock / Out of Stock" from the page. |
+| `rendersClean` | `true` | Tier 3 (Vision) captures the proof-shot: kit + price + available state. |
+
+If Phase 4 reality contradicts these (e.g. capture is blocked, or an API turns
+up), that is a capability-matrix update — **not** a loop change — exactly the
+pluggability the engine/source seam promises.
 
 ---
 
