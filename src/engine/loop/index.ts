@@ -22,6 +22,7 @@ import {
 import { verifyCandidate } from "../verify/index.js";
 import { composeConfidence, DEFAULT_CONFIDENCE_THRESHOLD } from "../confidence/index.js";
 import { LoopBudgetExceededError } from "../errors/index.js";
+import { routeRules } from "../../providers/source/base.js";
 
 export interface LoopBudget {
   readonly maxIterations: number; // hard cap (E3)
@@ -52,6 +53,7 @@ export async function runLoop<TFields, TData>(
   const start = now();
   const threshold = chassis.confidenceThreshold ?? DEFAULT_CONFIDENCE_THRESHOLD;
   const reliabilityOf = new Map(chassis.sources.map((s) => [s.name, s.reliability ?? 0.9]));
+  const capsOf = new Map(chassis.sources.map((s) => [s.name, s.capabilities]));
 
   let iterations = 0;
   let previousBest = -1;
@@ -71,8 +73,11 @@ export async function runLoop<TFields, TData>(
     // verify each via the (human-gated) core; the chassis supplies the tier rules.
     const verified: VerifiedResult<TData>[] = [];
     for (const candidate of candidates) {
+      // Capability-matrix routing (Task 6): only run tiers this source can serve.
+      const caps = capsOf.get(candidate.source);
       const rules = chassis.tierRules(candidate, spec);
-      const outcome = await verifyCandidate(candidate, rules, { sandbox: deps.sandbox });
+      const routed = caps ? routeRules(rules, caps) : rules;
+      const outcome = await verifyCandidate(candidate, routed, { sandbox: deps.sandbox });
       if (outcome.kind !== "verified") continue; // ghost dropped — no card.
 
       const confidence = composeConfidence(
