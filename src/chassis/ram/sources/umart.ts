@@ -11,12 +11,49 @@
  *             time — never cached, Law 2).
  */
 import type { Candidate, ISourceProvider, Spec, SourceCapabilities } from "../../../types/index.js";
+import type { ExtractSpec } from "../../../providers/index.js";
 import { fetchText } from "../../../providers/net.js";
 import { matchesSpec } from "../verify.js";
 import type { RamCandidateData, RamLiveState, RamSpecFields } from "../types.js";
-import { parseListing, parseProductPage, parseRamAttributes } from "./parse.js";
+import {
+  availabilityFromHref,
+  cleanTitle,
+  parseListing,
+  parseProductPage,
+  parseRamAttributes,
+  priceFromContent,
+} from "./parse.js";
 
 const ORIGIN = "https://www.umart.com.au";
+
+/**
+ * Selectors the Tier-3 render reads off the page — the SAME DOM it screenshots
+ * (F1). Umart microdata: price `content`, availability `href`, the page title.
+ * The validator returns these as raw strings; `interpretUmartFields` gives them
+ * meaning here in the domain folder (Law 7).
+ */
+export const UMART_RENDER_SELECTORS: Record<string, ExtractSpec> = {
+  priceContent: { selector: 'span[itemprop="price"]', attr: "content" },
+  availabilityHref: { selector: 'link[itemprop="availability"]', attr: "href" },
+  title: { selector: "title" },
+};
+
+/** Interpret the rendered field strings into a live state, using the SAME
+ * in-stock + price predicates as the Node-fetch read (so they agree by
+ * construction). Falls back to the candidate's known data only when a field is
+ * unreadable. */
+export function interpretUmartFields(
+  fields: Record<string, string | null>,
+  candidate: Candidate<RamCandidateData>,
+): RamLiveState {
+  const priceRaw = priceFromContent(fields.priceContent ?? null);
+  const parsed = parseRamAttributes(cleanTitle(fields.title ?? null));
+  return {
+    availability: availabilityFromHref(fields.availabilityHref ?? null),
+    priceAud: Number.isFinite(priceRaw) ? priceRaw : candidate.data.priceAud,
+    attributes: parsed?.attributes ?? candidate.data.attributes,
+  };
+}
 
 /** Category pages per generation (discovered from the live nav). */
 const CATEGORY: Record<RamSpecFields["generation"], string> = {

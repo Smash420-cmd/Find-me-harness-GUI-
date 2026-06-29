@@ -12,7 +12,7 @@ import { runLoop } from "../engine/loop/index.js";
 import { EphemeralSandbox } from "../engine/verify/index.js";
 import { VerificationTier, type Spec } from "../types/index.js";
 import { createRamChassis, parseRamSpec, type RamSpecFields } from "../chassis/ram/index.js";
-import { UmartSource } from "../chassis/ram/sources/umart.js";
+import { UmartSource, UMART_RENDER_SELECTORS, interpretUmartFields } from "../chassis/ram/sources/umart.js";
 import { PlaywrightValidator } from "../providers/validation/playwright.js";
 
 const live = process.env.RUN_LIVE === "1";
@@ -27,9 +27,14 @@ const live = process.env.RUN_LIVE === "1";
         source,
         readLive: (c) => source.read(c),
         captureProof: (c, env) =>
-          env.sandbox.run(() =>
-            validator.capture({ url: c.data.url, mustShow: `${c.data.title} @ $${c.data.priceAud} in stock` }),
-          ),
+          env.sandbox.run(async () => {
+            const { proof, fields } = await validator.capture({
+              url: c.data.url,
+              mustShow: `${c.data.title} @ $${c.data.priceAud} in stock`,
+              extract: UMART_RENDER_SELECTORS,
+            });
+            return { proof, live: interpretUmartFields(fields, c) };
+          }),
       });
 
       const spec = parseRamSpec({

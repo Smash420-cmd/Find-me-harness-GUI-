@@ -8,11 +8,15 @@
  *   Liveness is re-read every time; the cache holds only the SKU identity (Law 2).
  *
  * Tiers (Umart has no API → Tier 1 skipped by the capability matrix):
- *   Tier 2 DOM    — live read: confirm SKU + availability; emit a degraded
+ *   Tier 2 DOM    — CHEAP PRE-FILTER (Node-fetch read): confirm SKU + availability
+ *                   to drop obvious mismatches without rendering; emit a degraded
  *                   DOM-snapshot proof (lower score).
- *   Tier 3 Vision — capture the proof-shot (kit + price + in-stock). Full score.
- *   If Tier 3 capture fails, the engine falls back to the Tier-2 proof and flags
- *   confidence (never a silent pass); if neither proves it, the candidate drops.
+ *   Tier 3 Vision — AUTHORITATIVE CONFIRMATION on the rendered DOM (F1): the
+ *                   capture reads SKU + in-stock off the SAME render it
+ *                   screenshots and RE-CHECKS them; if the render disagrees with
+ *                   the pre-filter, the render wins (drop). Full score on pass.
+ *   If Tier 3 capture fails (infra), the engine falls back to the Tier-2 proof
+ *   and flags confidence (never a silent pass); if neither proves it, it drops.
  */
 import {
   VerificationTier,
@@ -25,10 +29,17 @@ import {
 import type { RamAttributes, RamCandidateData, RamLiveState, RamSpecFields } from "./types.js";
 
 export interface RamVerifyDeps {
-  /** Live DOM read (Tier 2). Always called — liveness never comes from cache. */
+  /** Tier-2 cheap pre-filter read (Node fetch). Always called — never cached (Law 2). */
   readonly readLive: (candidate: Candidate<RamCandidateData>) => Promise<RamLiveState>;
-  /** Tier-3 capture inside the sandbox → the proof-shot (Playwright in v1). */
-  readonly captureProof: (candidate: Candidate<RamCandidateData>, env: TierEnv) => Promise<ProofShot>;
+  /**
+   * Tier-3 capture inside the sandbox. Returns the proof-shot AND the live state
+   * read off the SAME render (F1), so the in-stock + SKU decision is confirmed on
+   * exactly the DOM the proof shows. Throws ⇒ engine degrades to the Tier-2 proof.
+   */
+  readonly captureProof: (
+    candidate: Candidate<RamCandidateData>,
+    env: TierEnv,
+  ) => Promise<{ proof: ProofShot; live: RamLiveState }>;
 }
 
 /** Correct-SKU rule: does the live listing match what the user asked for? */
@@ -45,6 +56,18 @@ export function matchesSpec(attrs: RamAttributes, spec: RamSpecFields): true | s
   return true;
 }
 
+/**
+ * The single correct-AND-real predicate, applied identically by both tiers
+ * (Tier 2 on the Node-fetch read, Tier 3 on the rendered DOM). Returns a drop
+ * reason, or null if the candidate is correct and in stock.
+ */
+export function disqualify(live: RamLiveState, spec: RamSpecFields): string | null {
+  const correct = matchesSpec(live.attributes, spec);
+  if (correct !== true) return `wrong SKU: ${correct}`;
+  if (live.availability === "out_of_stock") return "sold out";
+  return null;
+}
+
 const DOM_PROOF_SCORE = 0.7; // degraded proof — weaker than the vision capture
 const VISION_PROOF_SCORE = 1.0;
 
@@ -53,15 +76,16 @@ export function ramTierRules(
   spec: Spec<RamSpecFields>,
   deps: RamVerifyDeps,
 ): TierRule<RamCandidateData>[] {
-  // Tier 2 — DOM: live correctness + availability; degraded proof.
+  // Tier 2 — DOM: cheap Node-fetch pre-filter. Drops obvious wrong-SKU / sold-out
+  // candidates WITHOUT rendering, so only survivors reach the (costly) Tier-3
+  // render. Emits a degraded DOM-snapshot proof used only if the render fails.
   const dom: TierRule<RamCandidateData> = {
     tier: VerificationTier.Dom,
     proofBearing: true,
     evaluate: async (c) => {
       const live = await deps.readLive(c); // liveness — every time (Law 2)
-      const correct = matchesSpec(live.attributes, spec.fields);
-      if (correct !== true) return { ok: false, reason: `wrong SKU: ${correct}` };
-      if (live.availability === "out_of_stock") return { ok: false, reason: "sold out" };
+      const reason = disqualify(live, spec.fields);
+      if (reason) return { ok: false, reason: `${reason} (pre-filter)` };
       const proof: ProofShot = {
         tier: VerificationTier.Dom,
         artifactRef: `dom:${c.key}`,
@@ -72,12 +96,17 @@ export function ramTierRules(
     },
   };
 
-  // Tier 3 — Vision: capture the user-facing proof-shot. Throws ⇒ engine degrades.
+  // Tier 3 — Vision: AUTHORITATIVE. Renders once, reads SKU + in-stock off that
+  // same render, and RE-CHECKS them. If the render disagrees with the pre-filter
+  // (e.g. it sold out in between, or the page differs), the render wins → drop.
+  // Throws (infra failure) ⇒ engine degrades to the Tier-2 proof + flags.
   const vision: TierRule<RamCandidateData> = {
     tier: VerificationTier.Vision,
     proofBearing: true,
     evaluate: async (c, env) => {
-      const proof = await deps.captureProof(c, env); // sandboxed capture
+      const { proof, live } = await deps.captureProof(c, env); // render = decision = proof
+      const reason = disqualify(live, spec.fields);
+      if (reason) return { ok: false, reason: `${reason} (on rendered DOM)` };
       return { ok: true, proof, score: VISION_PROOF_SCORE };
     },
   };

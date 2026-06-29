@@ -13,8 +13,8 @@ import { chromium, type Browser } from "playwright";
 import { mkdir, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
-import { VerificationTier, type ProofShot } from "../../types/index.js";
-import type { IValidationProvider } from "../index.js";
+import { VerificationTier } from "../../types/index.js";
+import type { CaptureResult, ExtractSpec, IValidationProvider } from "../index.js";
 import { USER_AGENT } from "../net.js";
 
 export interface PlaywrightValidatorOptions {
@@ -54,7 +54,11 @@ export class PlaywrightValidator implements IValidationProvider {
     this.executablePath = resolveExecutable(opts.executablePath);
   }
 
-  async capture(target: { url: string; mustShow: string }): Promise<ProofShot> {
+  async capture(target: {
+    url: string;
+    mustShow: string;
+    extract?: Record<string, ExtractSpec>;
+  }): Promise<CaptureResult> {
     await mkdir(this.artifactDir, { recursive: true });
     const allow = baseDomain(new URL(target.url).host);
 
@@ -96,15 +100,31 @@ export class PlaywrightValidator implements IValidationProvider {
       await page.goto(target.url, { waitUntil: "domcontentloaded", timeout: this.navTimeoutMs });
       await page.waitForTimeout(800); // let above-the-fold settle
 
+      // Read the requested fields off THIS render — the same DOM we screenshot —
+      // so the caller can confirm liveness on exactly what the proof shows (F1).
+      const fields: Record<string, string | null> = {};
+      for (const [name, spec] of Object.entries(target.extract ?? {})) {
+        try {
+          fields[name] = spec.attr
+            ? await page.getAttribute(spec.selector, spec.attr)
+            : ((await page.locator(spec.selector).first().textContent()) ?? null);
+        } catch {
+          fields[name] = null;
+        }
+      }
+
       const artifactRef = join(this.artifactDir, `proof-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.png`);
       const png = await page.screenshot({ fullPage: false });
       await writeFile(artifactRef, png);
 
       return {
-        tier: VerificationTier.Vision,
-        artifactRef,
-        capturedAt: Date.now(),
-        shows: target.mustShow,
+        proof: {
+          tier: VerificationTier.Vision,
+          artifactRef,
+          capturedAt: Date.now(),
+          shows: target.mustShow,
+        },
+        fields,
       };
     } finally {
       await browser?.close(); // ephemeral: nothing rendered survives the capture

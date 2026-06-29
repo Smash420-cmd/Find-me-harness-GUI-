@@ -87,17 +87,37 @@ export interface ProductRead {
   readonly title: string;
 }
 
-/** Parse a product page: microdata price + availability + title attributes. */
+// ── Field interpreters (shared by the Node-fetch pre-filter AND the render) ───
+// These are the single source of truth for the in-stock + price predicates, so
+// the cheap pre-filter and the authoritative render decision agree by construction.
+
+/** The in-stock predicate (fail-closed): in_stock ONLY for exactly schema.org/InStock. */
+export function availabilityFromHref(href: string | null): "in_stock" | "out_of_stock" {
+  const m = /\/(InStock|OutOfStock|SoldOut|PreOrder|BackOrder)\b/i.exec(href ?? "");
+  return (m?.[1] ?? "").toLowerCase() === "instock" ? "in_stock" : "out_of_stock";
+}
+
+/** Price from a microdata `content` value (e.g. "619.00"). NaN if absent/unparseable. */
+export function priceFromContent(content: string | null): number {
+  if (content == null || content.trim() === "") return NaN;
+  return Number(content);
+}
+
+/** Strip the "- Umart.com.au" suffix from a page <title>. */
+export function cleanTitle(raw: string | null): string {
+  return (raw ?? "").replace(/\s*-\s*Umart\.com\.au\s*$/i, "").trim();
+}
+
+/** Parse a product page (HTML): microdata price + availability + title attributes. */
 export function parseProductPage(html: string): ProductRead {
   const price = /itemprop="price"[^>]*content="([\d.]+)"/i.exec(html);
-  const priceAud = price ? Number(price[1]) : NaN;
+  const priceAud = priceFromContent(price?.[1] ?? null);
 
-  const avail = /itemprop="availability"[^>]*href="[^"]*\/(InStock|OutOfStock|SoldOut|PreOrder|BackOrder)"/i.exec(html);
-  const token = (avail?.[1] ?? "").toLowerCase();
-  const availability: ProductRead["availability"] = token === "instock" ? "in_stock" : "out_of_stock";
+  const avail = /itemprop="availability"[^>]*href="([^"]*)"/i.exec(html);
+  const availability = availabilityFromHref(avail?.[1] ?? null);
 
   const titleMatch = /<title>([\s\S]*?)<\/title>/i.exec(html);
-  const title = (titleMatch?.[1] ?? "").replace(/\s*-\s*Umart\.com\.au\s*$/i, "").trim();
+  const title = cleanTitle(titleMatch?.[1] ?? null);
 
   return { priceAud, availability, parsed: parseRamAttributes(title), title };
 }

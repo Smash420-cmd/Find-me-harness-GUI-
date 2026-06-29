@@ -94,6 +94,8 @@ describe("Task 3 — verification core (the trust floor)", () => {
       expect(degraded.proof.tier).toBe(VerificationTier.Dom);
       // and it is NOT passed off at full confidence — strictly lower than the undegraded run
       expect(degraded.verificationScore).toBeLessThan(full.verificationScore);
+      // F2: pin DEGRADE_FACTOR so it can't drift — 0.8 (tier-2 score) × 0.6 = 0.48.
+      expect(degraded.verificationScore).toBeCloseTo(0.48, 5);
     }
   });
 

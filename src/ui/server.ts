@@ -14,7 +14,7 @@ import { fromStructured, fromConversation } from "../engine/converge/index.js";
 import type { Spec, VerifiedResult } from "../types/index.js";
 import { createRamChassis, parseRamSpec, type RamSpecFields } from "../chassis/ram/index.js";
 import type { RamCandidateData } from "../chassis/ram/types.js";
-import { UmartSource } from "../chassis/ram/sources/umart.js";
+import { UmartSource, UMART_RENDER_SELECTORS, interpretUmartFields } from "../chassis/ram/sources/umart.js";
 import { PlaywrightValidator } from "../providers/validation/playwright.js";
 import { HeuristicLLMProvider } from "../providers/llm/heuristic.js";
 import { renderPage } from "./page.js";
@@ -36,9 +36,14 @@ export function createHarnessServer(opts: HarnessServerOptions = {}): Server {
     source,
     readLive: (c) => source.read(c),
     captureProof: (c, env) =>
-      env.sandbox.run(() =>
-        validator.capture({ url: c.data.url, mustShow: `${c.data.title} @ $${c.data.priceAud} in stock` }),
-      ),
+      env.sandbox.run(async () => {
+        const { proof, fields } = await validator.capture({
+          url: c.data.url,
+          mustShow: `${c.data.title} @ $${c.data.priceAud} in stock`,
+          extract: UMART_RENDER_SELECTORS,
+        });
+        return { proof, live: interpretUmartFields(fields, c) };
+      }),
   });
 
   return createServer((req, res) => void handle(req, res).catch((e) => fail(res, 500, String(e))));

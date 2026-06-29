@@ -96,7 +96,9 @@ describe("Task 7 — RAM chassis", () => {
       const chassis = createRamChassis({
         source,
         readLive: async (c) => (await source.read(c)) as RamLiveState,
-        captureProof: async (c, env) => env.sandbox.run(async () => visionProof(c.key).proof),
+        // F1: Tier-3 returns the proof AND the live state read off the same render.
+        captureProof: async (c, env) =>
+          env.sandbox.run(async () => ({ proof: visionProof(c.key).proof, live: (await source.read(c)) as RamLiveState })),
       });
 
       const out = await runLoop(spec as Spec<RamSpecFields>, chassis, { maxIterations: 3, wallClockMs: 5000 }, {
@@ -109,6 +111,22 @@ describe("Task 7 — RAM chassis", () => {
       expect(out.results[0]!.proof.tier).toBe(VerificationTier.Vision);
       expect(out.results[0]!.confidence.flagged).toBe(false);
       expect(out.stoppedBy).toBe("gate");
+    });
+
+    it("F1: render disagrees with the pre-filter (sold out on the rendered DOM) ⇒ dropped, render wins", async () => {
+      const spec = parseRamSpec(validInput);
+      // The pre-filter (source.read) says in stock; the RENDER says sold out.
+      const source = fakeUmart([{ data: candidateData({ productId: "ok", priceAud: 150 }), live: liveOk(150) }]);
+      const chassis = createRamChassis({
+        source,
+        readLive: async (c) => (await source.read(c)) as RamLiveState, // Tier 2: in stock
+        captureProof: async (c, env) =>
+          env.sandbox.run(async () => ({ proof: visionProof(c.key).proof, live: liveSoldOut(150) })), // Tier 3 render: sold out
+      });
+      const out = await runLoop(spec as Spec<RamSpecFields>, chassis, { maxIterations: 2, wallClockMs: 5000 }, {
+        sandbox: new EphemeralSandbox(),
+      });
+      expect(out.results).toHaveLength(0); // authoritative render dropped it
     });
 
     it("degradation: when vision capture fails, falls back to the DOM proof and flags confidence", async () => {
@@ -127,6 +145,9 @@ describe("Task 7 — RAM chassis", () => {
       expect(out.results).toHaveLength(1);
       expect(out.results[0]!.proof.tier).toBe(VerificationTier.Dom); // degraded proof
       expect(out.results[0]!.confidence.flagged).toBe(true); // never a silent pass
+      // F2: pin the degraded verification score so the constants can't drift
+      // unnoticed — DOM_PROOF_SCORE (0.7) × DEGRADE_FACTOR (0.6) = 0.42.
+      expect(out.results[0]!.confidence.verification).toBeCloseTo(0.42, 5);
     });
   });
 });
