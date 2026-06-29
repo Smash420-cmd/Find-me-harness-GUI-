@@ -14,6 +14,8 @@ export interface Candidate<TData = unknown> {
   readonly key: string;
   readonly source: string;
   readonly data: TData;
+  /** How well this candidate matched intent (0..1). Feeds the convergence term. Default 1. */
+  readonly relevance?: number;
 }
 
 /**
@@ -130,6 +132,8 @@ export interface SourceCapabilities {
 export interface ISourceProvider<TData = unknown> {
   readonly name: string;
   readonly capabilities: SourceCapabilities;
+  /** Declared/observed trust in this source (0..1). Feeds source-reliability term. Default 0.9. */
+  readonly reliability?: number;
   /** Broad, cheap candidate gathering for a spec's intent. */
   readonly observe: (spec: Spec<unknown>) => Promise<Candidate<TData>[]>;
   /** Read a candidate's current state (DOM/page) for verification tiers. */
