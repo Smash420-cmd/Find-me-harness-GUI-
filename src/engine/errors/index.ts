@@ -43,6 +43,14 @@ export class SourceUnavailableError extends HarnessError {
   }
 }
 
+/** A render tried to touch state outside its ephemeral sandbox context (Plan B.4). */
+export class SandboxViolationError extends HarnessError {
+  readonly code = "SANDBOX_VIOLATION";
+  constructor(message: string) {
+    super(`Sandbox violation: ${message}`);
+  }
+}
+
 // ── Chassis-level (thrown by the contract, propagated by the engine) ─────────
 
 /** A request is internally impossible / fails the schema (e.g. "DDR4 @ 8000MHz"). */

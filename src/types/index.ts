@@ -68,8 +68,12 @@ export interface VerifiedResult<TData = unknown> {
 export interface Chassis<TFields, TData> {
   /** 1. What a valid request looks like in this domain (Zod schema). */
   readonly parseSpec: (input: unknown) => Spec<TFields>;
-  /** 2. Is this candidate correct (right thing) AND real (available)? */
-  readonly verify: (candidate: Candidate<TData>, spec: Spec<TFields>, tiers: TierRunner<TData>) => Promise<VerificationOutcome<TData>>;
+  /**
+   * 2. The verification contract, supplied as ordered tier RULES. The engine
+   *    routes them cheapest-first and applies the proof-shot gate + degradation;
+   *    the chassis only supplies what each tier CHECKS, never the routing.
+   */
+  readonly tierRules: (candidate: Candidate<TData>, spec: Spec<TFields>) => ReadonlyArray<TierRule<TData>>;
   /** 3. What "best" means here — over verified survivors only. */
   readonly rank: (verified: VerifiedResult<TData>[]) => VerifiedResult<TData>[];
   /** The user-constraint vocabulary check (domain words; engine applies uniformly). */
@@ -80,34 +84,41 @@ export interface Chassis<TFields, TData> {
   readonly confidenceThreshold?: number;
 }
 
-/**
- * Handed to a chassis `verify` so it can request tier work without owning routing.
- * The engine implements this; the chassis only supplies the per-tier rules.
- */
-export interface TierRunner<TData> {
-  /** Run a tier check; the engine enforces cheapest-first ordering and degradation. */
-  readonly run: (
-    candidate: Candidate<TData>,
-    tier: VerificationTier,
-    rule: TierRule<TData>,
-  ) => Promise<TierResult>;
+/** What the engine hands a proof-bearing tier rule: an isolated, ephemeral sandbox. */
+export interface TierEnv {
+  readonly sandbox: Sandbox;
 }
 
-/** A single tier's chassis-supplied rule. Returns whether the tier is satisfied. */
+/** An isolated, ephemeral render context (Plan B.4). Torn down after each run. */
+export interface Sandbox {
+  run<T>(work: (ctx: SandboxContext) => Promise<T>): Promise<T>;
+}
+
+export interface SandboxContext {
+  set(key: string, value: unknown): void;
+  get(key: string): unknown;
+}
+
+/**
+ * A single tier's chassis-supplied rule. The engine routes; this only checks.
+ * `proofBearing` rules run inside the sandbox and may return a ProofShot.
+ */
 export interface TierRule<TData> {
   readonly tier: VerificationTier;
-  /** Evaluate the tier for this candidate. Tier 3 must yield a ProofShot when satisfied. */
-  readonly evaluate: (candidate: Candidate<TData>) => Promise<TierEvaluation>;
+  /** True if this tier can produce the proof a card requires (e.g. Vision). */
+  readonly proofBearing: boolean;
+  /**
+   * Evaluate the tier. Return:
+   *  - { ok:true, proof?, score } — satisfied (proof present on proof-bearing tiers);
+   *  - { ok:false, reason }       — checked and INVALID (ghost → drop);
+   *  - or THROW                   — could not check (infra failure → degrade).
+   */
+  readonly evaluate: (candidate: Candidate<TData>, env: TierEnv) => Promise<TierEvaluation>;
 }
 
 export type TierEvaluation =
   | { readonly ok: true; readonly proof?: ProofShot; readonly score: number }
   | { readonly ok: false; readonly reason: string };
-
-export type TierResult =
-  | { readonly status: "satisfied"; readonly tier: VerificationTier; readonly proof?: ProofShot; readonly score: number }
-  | { readonly status: "unsatisfied"; readonly tier: VerificationTier; readonly reason: string }
-  | { readonly status: "tier-failed"; readonly tier: VerificationTier; readonly reason: string };
 
 /** Capabilities a source declares — decides which tiers are available (Plan B.2). */
 export interface SourceCapabilities {
