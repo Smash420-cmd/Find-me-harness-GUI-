@@ -30,6 +30,8 @@ export interface Msg {
 export interface ToolSpec {
   readonly name: string;
   readonly description: string; // neutral verbs only — never method hints
+  /** JSON schema for the tool input — used by real model adapters; the runner ignores it. */
+  readonly schema?: Record<string, unknown>;
 }
 
 export interface ModelTurn {
