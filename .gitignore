@@ -45,3 +45,7 @@ server.err
 # generated screenshots — audit evidence IS committed, the rest is disposable
 screenshots/*
 !screenshots/audit/
+
+# exam/experiment runtime (examiner branch artifacts — never on the product line)
+students/
+worlds/

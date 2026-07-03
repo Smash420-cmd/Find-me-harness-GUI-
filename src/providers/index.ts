@@ -43,6 +43,38 @@ export interface IValidationProvider {
   }) => Promise<CaptureResult>;
 }
 
+/** What a vision model reads off a rendered sales page (the proof shot). Domain-
+ * free: the same reader interprets any retailer, because a human doesn't need a
+ * per-site brain to read a page. The chassis maps `identifiers` to its own
+ * identity notion (MPN for RAM, ISBN for books) and validates `price`/
+ * `available` through the existing deterministic gates — the reader is a
+ * WITNESS, not a judge (Law 5). Every claim is auditable against the same
+ * screenshot it was read from (F1). */
+export interface ProofReading {
+  /** Is this even a buyable product page? category/search/error/blocked pages self-declare. */
+  readonly pageType: "product" | "category" | "search" | "error" | "blocked" | "other";
+  readonly available: "in_stock" | "out_of_stock" | "preorder" | "unknown";
+  /** What the reader actually saw (an enabled Add-to-Cart, a Notify-Me form, "Sold out"…). */
+  readonly availabilityEvidence: string;
+  readonly price: number | null; // the product price, not a cart total or installment
+  readonly currency: string | null;
+  readonly title: string | null;
+  /** Visible SKU / MPN / ISBN / Model#, verbatim — the identity anchor. */
+  readonly identifiers: string[];
+  readonly confidence: number; // 0..1
+  /** Honesty note: what could NOT be read, why unknown, page problems. */
+  readonly notes: string;
+}
+
+/** Reads structured fields off a proof-shot image. Implemented by a vision LLM
+ * guided by the sales-page reading guide; swappable/mockable for tests. */
+export interface IProofReader {
+  /** `domainHint` is a thin per-chassis appendix (e.g. "RAM: kit config is
+   * load-bearing; SODIMM = laptop"). `imageBase64` is the same PNG the proof
+   * shot shows. */
+  read: (imageBase64: string, opts?: { domainHint?: string; want?: string }) => Promise<ProofReading>;
+}
+
 /** Memory seam — STUB in v1 (get → miss). Local-first later, behind a benchmark. */
 export interface ICacheProvider {
   /** Recall a *fact* only — never liveness (Law 2). */
