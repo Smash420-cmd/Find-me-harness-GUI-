@@ -22,6 +22,26 @@ import type { Msg, ModelTurn, StudentModel, ToolImpl, ToolSpec } from "./episode
 
 const sha = (s: string) => createHash("sha256").update(s).digest("hex");
 
+/**
+ * Build the Anthropic client for exam runs WITHOUT ever using the user's
+ * metered ANTHROPIC_API_KEY (hard rule, 2026-07-05). Credential precedence:
+ *   STUDENT_AUTH_TOKEN  → OAuth bearer (e.g. a Max-plan token) + oauth beta
+ *   STUDENT_API_KEY     → a separate, dedicated metered key
+ *   otherwise           → refuse. Never fall through to ANTHROPIC_API_KEY.
+ */
+export function studentClient(): Anthropic {
+  const authToken = process.env.STUDENT_AUTH_TOKEN?.trim();
+  if (authToken) {
+    return new Anthropic({ authToken, defaultHeaders: { "anthropic-beta": "oauth-2025-04-20" } });
+  }
+  const apiKey = process.env.STUDENT_API_KEY?.trim();
+  if (apiKey) return new Anthropic({ apiKey });
+  throw new Error(
+    "refusing to run: set STUDENT_AUTH_TOKEN (Max-plan/OAuth) or STUDENT_API_KEY. " +
+      "The exam must NEVER use your metered ANTHROPIC_API_KEY.",
+  );
+}
+
 // ── the constitution (Spec 007, verbatim — the ENTIRE system prompt) ──────
 
 export const CONSTITUTION = `You have these tools: search, fetch, screenshot, read_screenshot, write_file, run_script, submit_answer.
@@ -168,7 +188,7 @@ export function studentTools(opts: StudentToolsOptions): { tools: Record<string,
       mkdirSync(cacheDir, { recursive: true });
       const cachePath = join(cacheDir, `${sha(sha(image.toString("base64")) + str(question))}.json`);
       if (existsSync(cachePath)) return (JSON.parse(readFileSync(cachePath, "utf8")) as { answer: string }).answer;
-      const client = opts.client ?? new Anthropic();
+      const client = opts.client ?? studentClient();
       const res = await client.messages.create({
         model: opts.visionModel ?? "claude-haiku-4-5",
         max_tokens: 700,
@@ -241,7 +261,7 @@ export class AnthropicStudentModel implements StudentModel {
   private readonly client: Anthropic;
 
   constructor(private readonly model: string, client?: Anthropic) {
-    this.client = client ?? new Anthropic();
+    this.client = client ?? studentClient();
   }
 
   async next(transcript: Msg[], tools: ToolSpec[]): Promise<ModelTurn> {
