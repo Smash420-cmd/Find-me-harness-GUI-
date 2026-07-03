@@ -10,16 +10,31 @@ results, tick the box, commit, and write a short findings note. Then stop.
    student/eval: `STUDENT_API_KEY` env → a non-business OAuth/Max token available
    to this session (`STUDENT_AUTH_TOKEN`) → otherwise DO NOT SPEND: report what
    credential (if any) the session exposes, leave the box UNchecked, stop.
-2. **One 5-hour window max.** Run episode 1, read its printed token/cache line.
-   If one episode looks like it would exceed a fraction of the window such that
-   the planned count won't fit, reduce the episode count. Better a small
-   complete run than a clipped one.
-3. **Commit results** to `specs/006-hidden-examiner/results/<test>.md` and tick
-   the box here. Never commit `students/` or `worlds/` (gitignored — scraped
+2. **MEASURE THE BURN — this is the point of the early runs.** Record and report
+   prominently, at the top of the results file AND in the one-line Log entry:
+   total model tokens used (sum the per-episode `tokens NNNK (NN% cached)`
+   readouts + any vision calls), total wall-clock minutes, and episodes/calls
+   made. We scale future runs on this number, not on assumptions — my cost
+   estimates have been unreliable, so the measured figure governs.
+3. **Adaptive scaling within a run.** Size to ONE 5-hour Max window. Run
+   episode 1 first, read its token/cache line.
+   - If the just-finished test used LITTLE (wall-clock well under ~45 min and
+     modest tokens) AND another test is unchecked, CONTINUE to the next test in
+     the same run — cascade while comfortable headroom remains in the window.
+     Stop with margin to spare; never risk clipping.
+   - If a test is heavier than expected, do just that one (or fewer episodes),
+     and record why. Better a small complete result than a clipped one.
+   - T1 (vision eval) is tiny — always also start T2 after it if a credential
+     works. The real burn signal is T2's first Sonnet student episode.
+4. **Commit results** to `specs/006-hidden-examiner/results/<test>.md` and tick
+   the box(es) here. Never commit `students/` or `worlds/` (gitignored — scraped
    content, secret-leak risk).
-4. Work on branch `006-hidden-examiner`. `worlds/ram-v1` and `worlds/books-v1`
+5. Work on branch `006-hidden-examiner`. `worlds/ram-v1` and `worlds/books-v1`
    are local (regenerate via `scripts/record-world.mjs` / `record-urls.mjs` if
    missing — live web, no API). `worlds/books-v1/key.json` is signed.
+6. **After the first run that spends anything, the user reviews the measured
+   burn and may bump episode counts here.** Leave the plan easy to scale: the
+   `--episodes N` in each test is the knob.
 
 ## The tests (do the first unchecked one)
 
