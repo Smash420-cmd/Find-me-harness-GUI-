@@ -49,3 +49,7 @@ screenshots/*
 # frozen worlds (Spec 006) — recorded snapshots are large; commit deliberately, not by default
 worlds/
 !worlds/*/manifest.json
+
+# student runtime — episode transcripts kept as artifacts; workspace + state are disposable
+students/*/workspace/
+students/*/state.json
