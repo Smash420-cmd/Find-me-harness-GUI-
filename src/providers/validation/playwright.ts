@@ -73,8 +73,9 @@ export class PlaywrightValidator implements IValidationProvider {
       const ctx = await browser.newContext({ userAgent: USER_AGENT });
       const page = await ctx.newPage();
 
-      // Network isolation: fulfil same-domain requests from a server-side fetch
-      // (which traverses the proxy); abort everything else.
+      // Same-domain requests are proxied through server-side fetch (avoids bot blocks).
+      // Cross-domain requests (CDN images, fonts, CSS) pass through directly so the
+      // screenshot shows the page as it actually looks to a real user.
       await page.route("**/*", async (route) => {
         const url = route.request().url();
         let host = "";
@@ -83,7 +84,7 @@ export class PlaywrightValidator implements IValidationProvider {
         } catch {
           return route.abort();
         }
-        if (host !== allow && !host.endsWith(`.${allow}`)) return route.abort();
+        if (host !== allow && !host.endsWith(`.${allow}`)) return route.continue();
         try {
           const r = await fetch(url, { headers: { "user-agent": USER_AGENT } });
           const body = Buffer.from(await r.arrayBuffer());
@@ -98,7 +99,23 @@ export class PlaywrightValidator implements IValidationProvider {
       });
 
       await page.goto(target.url, { waitUntil: "domcontentloaded", timeout: this.navTimeoutMs });
-      await page.waitForTimeout(800); // let above-the-fold settle
+      // Don't rush the shot. Three gates, all capped so nothing hangs forever:
+      // 1. network quiet (JS-rendered prices), 2. every VISIBLE image fully
+      // decoded (lazy loaders and slow CDNs beat networkidle), 3. paint settle.
+      await page.waitForLoadState("networkidle", { timeout: 12_000 }).catch(() => {});
+      await page
+        .waitForFunction(
+          `(() => {
+            const imgs = [...document.querySelectorAll('img')].filter(i => {
+              const r = i.getBoundingClientRect();
+              return r.top < window.innerHeight && r.bottom > 0 && r.width > 40 && r.height > 40;
+            });
+            return imgs.every(i => i.complete && i.naturalWidth > 0);
+          })()`,
+          { timeout: 10_000 },
+        )
+        .catch(() => {});
+      await page.waitForTimeout(1500); // let above-the-fold paint settle
 
       // Read the requested fields off THIS render — the same DOM we screenshot —
       // so the caller can confirm liveness on exactly what the proof shows (F1).
@@ -111,6 +128,30 @@ export class PlaywrightValidator implements IValidationProvider {
         } catch {
           fields[name] = null;
         }
+      }
+
+      // Universal availability/price signals — work on any retailer, no per-site classifier needed.
+      // Passed as a string so TypeScript doesn't try to type-check browser DOM code.
+      try {
+        const u = await page.evaluate(`(() => {
+          const btns = [...document.querySelectorAll("button, input[type='submit'], input[type='button']")];
+          const addToCart = btns.some(b => {
+            const t = (b.textContent || b.value || "").toLowerCase().trim();
+            return t.includes("add to cart") || t.includes("buy now") || t.includes("add to basket") || t === "buy";
+          });
+          const bodyText = document.body.innerText.toLowerCase();
+          const outOfStock = /\\b(sold\\s*out|out\\s*of\\s*stock|unavailable|notify\\s*me)\\b/.test(bodyText);
+          // First POSITIVE price — header cart widgets put "$0.00" first on many stores.
+          const price = (bodyText.match(/\\$\\s*\\d[\\d,]*\\.?\\d*/g) || [])
+            .map(s => s.replace(/[^\\d.]/g, ""))
+            .find(v => parseFloat(v) > 0) || null;
+          return { addToCart, outOfStock, price };
+        })()`) as { addToCart: boolean; outOfStock: boolean; price: string | null };
+        fields["_addToCart"] = u.addToCart ? "true" : "false";
+        fields["_outOfStock"] = u.outOfStock ? "true" : "false";
+        if (u.price) fields["_visiblePrice"] = u.price;
+      } catch {
+        // non-fatal — structured signals take precedence anyway
       }
 
       const artifactRef = join(this.artifactDir, `proof-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.png`);
@@ -128,6 +169,37 @@ export class PlaywrightValidator implements IValidationProvider {
       };
     } finally {
       await browser?.close(); // ephemeral: nothing rendered survives the capture
+    }
+  }
+
+  /** Navigate to url, run extractJs (must return string[]) and return those strings.
+   * Used for discovery (Google search etc.) — no proof-shot, no network isolation.
+   * Falls back to [] on any error so a discovery failure never kills the run. */
+  async browse(url: string, extractJs: string): Promise<string[]> {
+    let browser: Browser | undefined;
+    try {
+      browser = await chromium.launch({
+        headless: true,
+        executablePath: this.executablePath,
+        args: [
+          "--disable-background-networking",
+          "--disable-quic",
+          "--no-default-browser-check",
+          "--disable-blink-features=AutomationControlled",
+        ],
+      });
+      const ctx = await browser.newContext({
+        userAgent: USER_AGENT,
+        viewport: { width: 1280, height: 900 },
+      });
+      const page = await ctx.newPage();
+      await page.goto(url, { waitUntil: "domcontentloaded", timeout: this.navTimeoutMs });
+      await page.waitForTimeout(1800);
+      return (await page.evaluate(extractJs)) as string[];
+    } catch {
+      return [];
+    } finally {
+      await browser?.close();
     }
   }
 }

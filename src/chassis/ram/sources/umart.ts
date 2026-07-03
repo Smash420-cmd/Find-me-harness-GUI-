@@ -47,10 +47,27 @@ export function interpretUmartFields(
   candidate: Candidate<RamCandidateData>,
 ): RamLiveState {
   const priceRaw = priceFromContent(fields.priceContent ?? null);
+  // Fallback chain: microdata > universal visible price > candidate's Tier-2 price.
+  // A zero/negative read is a parse artifact, not a price — fall through (F1: the
+  // caption price must be real; "$0 in stock" must never verify).
+  const visiblePrice = Number(fields["_visiblePrice"] ?? NaN);
+  const priceAud = Number.isFinite(priceRaw) && priceRaw > 0 ? priceRaw
+    : Number.isFinite(visiblePrice) && visiblePrice > 0 ? visiblePrice
+    : candidate.data.priceAud;
   const parsed = parseRamAttributes(cleanTitle(fields.title ?? null));
+
+  // Availability priority: microdata (Umart/MSY) > universal visual signals > optimistic.
+  // Universal signals (_addToCart, _outOfStock) are injected by PlaywrightValidator for
+  // every capture — they work on ANY retailer without a per-site classifier.
+  const availability: RamLiveState["availability"] = fields.availabilityHref
+    ? availabilityFromHref(fields.availabilityHref)
+    : fields["_outOfStock"] === "true"
+      ? "out_of_stock"
+      : "in_stock"; // optimistic: add-to-cart or no clear signal — trust the proof-shot
+
   return {
-    availability: availabilityFromHref(fields.availabilityHref ?? null),
-    priceAud: Number.isFinite(priceRaw) ? priceRaw : candidate.data.priceAud,
+    availability,
+    priceAud,
     attributes: parsed?.attributes ?? candidate.data.attributes,
   };
 }

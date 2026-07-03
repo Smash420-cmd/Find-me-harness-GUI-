@@ -13,6 +13,7 @@ export interface RamAttributes {
   readonly kitCount?: number;
   readonly dataRateMtps: number; // e.g. 6000 for DDR5-6000
   readonly casLatency?: number; // primary CL
+  readonly formFactor?: "dimm" | "sodimm"; // desktop vs laptop
 }
 
 /** A RAM listing candidate (carried as Candidate.data through the engine). */
@@ -24,6 +25,7 @@ export interface RamCandidateData {
   readonly priceAud: number; // current listing price (the verified-price basis)
   // optional policy-vocabulary attributes
   readonly brand?: string;
+  readonly retailer?: string; // display name from StaticICE, e.g. "MSY", "UMart"
   readonly lowProfile?: boolean;
   readonly rank?: "single" | "dual";
   readonly greyImport?: boolean;
@@ -34,6 +36,8 @@ export interface RamLiveState {
   readonly availability: "in_stock" | "out_of_stock";
   readonly attributes: RamAttributes;
   readonly priceAud: number;
+  /** The page's own <title> — beats SERP/slug-derived candidate titles for display. */
+  readonly title?: string;
 }
 
 export interface RamConstraints {
@@ -42,6 +46,7 @@ export interface RamConstraints {
   readonly singleRankOnly?: boolean;
   readonly brandInclude?: readonly string[];
   readonly brandExclude?: readonly string[];
+  readonly formFactor?: "dimm" | "sodimm"; // default "dimm" (desktop) if omitted
 }
 
 export interface RamSpecFields {
@@ -49,7 +54,7 @@ export interface RamSpecFields {
   readonly capacityGb: number;
   readonly perStickGb?: number;
   readonly kitCount?: number;
-  readonly dataRateMtps: number;
+  readonly dataRateMtps?: number; // undefined = any speed
   readonly casLatency?: number;
   readonly budgetAud?: number;
   readonly constraints?: RamConstraints;

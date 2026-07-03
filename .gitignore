@@ -37,3 +37,11 @@ next-env.d.ts
 
 # build output
 /dist
+
+# runtime logs
+server.log
+server.err
+
+# generated screenshots — audit evidence IS committed, the rest is disposable
+screenshots/*
+!screenshots/audit/

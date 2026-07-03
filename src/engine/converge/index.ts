@@ -34,13 +34,13 @@ export type Turn = { readonly role: "user" | "assistant"; readonly content: stri
 
 /** The LLM's only permitted moves, as a protocol envelope (domain-free). */
 const ConvEnvelope = z.discriminatedUnion("action", [
-  z.object({ action: z.literal("propose"), fields: z.unknown() }),
+  z.object({ action: z.literal("propose"), fields: z.unknown(), note: z.string().optional() }),
   z.object({ action: z.literal("clarify"), question: z.string().min(1) }),
   z.object({ action: z.literal("impossible"), reason: z.string().min(1) }),
 ]);
 
 export type ConvergeResult<TFields> =
-  | { readonly kind: "spec"; readonly spec: Spec<TFields> }
+  | { readonly kind: "spec"; readonly spec: Spec<TFields>; readonly note?: string }
   | { readonly kind: "clarify"; readonly question: string };
 
 const SYSTEM_PROMPT_HASH = "converge-v1";
@@ -58,14 +58,19 @@ export async function fromConversation<TFields>(
   turns: readonly Turn[],
   llm: ILLMProvider,
   parse: SpecParser<TFields>,
+  context?: string,
 ): Promise<ConvergeResult<TFields>> {
-  const prompt = renderPrompt(turns);
-  const raw = await llm.complete(prompt, { promptHash: SYSTEM_PROMPT_HASH });
+  const prompt = renderPrompt(turns, context);
+  const raw = await llm.complete(prompt, { promptHash: SYSTEM_PROMPT_HASH, system: context });
+
+  // Strip markdown code fences — models often wrap JSON in ```json ... ``` despite instructions.
+  const cleaned = raw.replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/i, "").trim();
 
   let json: unknown;
   try {
-    json = JSON.parse(raw);
+    json = JSON.parse(cleaned);
   } catch {
+    console.error("[converge] raw LLM output (first 600 chars):", JSON.stringify(raw.slice(0, 600)));
     throw new SpecInvalidError("Conversational door: model output was not valid JSON.");
   }
 
@@ -87,18 +92,19 @@ export async function fromConversation<TFields>(
     case "propose":
       // Even a well-formed envelope's fields must pass the DOMAIN parser, which
       // is the authority on possibility (e.g. "DDR4 @ 8000MHz" → SpecInvalidError).
-      return { kind: "spec", spec: parse(env.fields) };
+      return { kind: "spec", spec: parse(env.fields), note: env.note };
   }
 }
 
-function renderPrompt(turns: readonly Turn[]): string {
+function renderPrompt(turns: readonly Turn[], context?: string): string {
   const transcript = turns.map((t) => `${t.role}: ${t.content}`).join("\n");
-  return [
+  const lines = context ? [context, "", "Conversation so far:", transcript] : [
     "Converge the user's intent into a request. Reply with ONE JSON object:",
     '  {"action":"propose","fields":{...}}    when intent is clear,',
     '  {"action":"clarify","question":"..."}  when ONE question is needed,',
     '  {"action":"impossible","reason":"..."} when the request is self-contradictory.',
     "Transcript:",
     transcript,
-  ].join("\n");
+  ];
+  return lines.join("\n");
 }

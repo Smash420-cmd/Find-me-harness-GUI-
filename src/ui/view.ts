@@ -11,6 +11,7 @@ import type { RamCandidateData } from "../chassis/ram/types.js";
 export interface ResultView {
   readonly title: string;
   readonly url: string;
+  readonly retailer: string;
   readonly priceLabel: string;
   readonly confidencePct: number;
   readonly flagged: boolean;
@@ -36,6 +37,7 @@ export function toViewModel(
   const view: ResultView[] = results.map((r) => ({
     title: r.candidate.data.title,
     url: r.candidate.data.url,
+    retailer: r.candidate.data.retailer ?? "Unknown",
     priceLabel: aud(r.candidate.data.priceAud),
     confidencePct: Math.round(r.confidence.overall * 100),
     flagged: r.confidence.flagged,

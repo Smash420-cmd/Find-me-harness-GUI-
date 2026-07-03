@@ -8,7 +8,7 @@ import type { Candidate, ProofShot } from "../types/index.js";
 export interface ILLMProvider {
   readonly name: string;
   /** Returns raw text; the caller MUST Zod-parse before the command path (Law 5). */
-  complete: (prompt: string, opts?: { promptHash?: string }) => Promise<string>;
+  complete: (prompt: string, opts?: { promptHash?: string; system?: string }) => Promise<string>;
 }
 
 /** What to read off the rendered DOM. Domain-free: the caller names the fields

@@ -26,6 +26,7 @@ const Constraints = z
     singleRankOnly: z.boolean().optional(),
     brandInclude: z.array(z.string().min(1)).optional(),
     brandExclude: z.array(z.string().min(1)).optional(),
+    formFactor: z.enum(["dimm", "sodimm"]).optional(),
   })
   .strict();
 
@@ -35,7 +36,7 @@ export const RamSpecSchema = z
     capacityGb: z.number().int().positive(),
     perStickGb: z.number().int().positive().optional(),
     kitCount: z.number().int().positive().optional(),
-    dataRateMtps: z.number().int().positive(),
+    dataRateMtps: z.number().int().positive().optional(),
     casLatency: z.number().int().positive().optional(),
     budgetAud: z.number().positive().optional(),
     constraints: Constraints.optional(),
@@ -43,13 +44,15 @@ export const RamSpecSchema = z
   .strict()
   .superRefine((s, ctx) => {
     // 1. Generation/data-rate possibility (the "DDR4 @ 8000MHz" rejection).
-    const band = DATA_RATE_BANDS[s.generation];
-    if (s.dataRateMtps < band.min || s.dataRateMtps > band.max) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["dataRateMtps"],
-        message: `${s.generation} cannot run at ${s.dataRateMtps} MT/s (feasible ${band.min}–${band.max}).`,
-      });
+    if (s.dataRateMtps !== undefined) {
+      const band = DATA_RATE_BANDS[s.generation];
+      if (s.dataRateMtps < band.min || s.dataRateMtps > band.max) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["dataRateMtps"],
+          message: `${s.generation} cannot run at ${s.dataRateMtps} MT/s (feasible ${band.min}–${band.max}).`,
+        });
+      }
     }
     // 2. Kit-config consistency: if all three are given they must agree.
     if (s.perStickGb !== undefined && s.kitCount !== undefined) {

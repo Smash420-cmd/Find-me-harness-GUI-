@@ -32,6 +32,9 @@ export interface LoopBudget {
 export interface LoopDeps {
   readonly sandbox: Sandbox;
   readonly now?: () => number; // injectable clock (tests)
+  readonly log?: (msg: string) => void; // optional structured logger
+  /** Called immediately after each result passes verification AND policy — enables streaming. */
+  readonly onResult?: (result: VerifiedResult<unknown>) => void | Promise<void>;
 }
 
 export type StoppedBy = "gate" | "no-improvement";
@@ -50,6 +53,7 @@ export async function runLoop<TFields, TData>(
   deps: LoopDeps,
 ): Promise<LoopOutcome<TData>> {
   const now = deps.now ?? Date.now;
+  const log = deps.log ?? (() => {});
   const start = now();
   const threshold = chassis.confidenceThreshold ?? DEFAULT_CONFIDENCE_THRESHOLD;
   const reliabilityOf = new Map(chassis.sources.map((s) => [s.name, s.reliability ?? 0.9]));
@@ -68,9 +72,11 @@ export async function runLoop<TFields, TData>(
     iterations++;
 
     // observe → fanOut: gather candidates across this domain's sources.
-    const candidates = await fanOut(spec, chassis);
+    const candidates = await fanOut(spec, chassis, log);
+    log(`[loop] iteration ${iterations}: ${candidates.length} candidate(s) from fanOut`);
 
     // verify each via the (human-gated) core; the chassis supplies the tier rules.
+    // Policy is applied inline so onResult (streaming) only fires for passing results.
     const verified: VerifiedResult<TData>[] = [];
     for (const candidate of candidates) {
       // Capability-matrix routing (Task 6): only run tiers this source can serve.
@@ -78,7 +84,10 @@ export async function runLoop<TFields, TData>(
       const rules = chassis.tierRules(candidate, spec);
       const routed = caps ? routeRules(rules, caps) : rules;
       const outcome = await verifyCandidate(candidate, routed, { sandbox: deps.sandbox });
-      if (outcome.kind !== "verified") continue; // ghost dropped — no card.
+      if (outcome.kind !== "verified") {
+        log(`[loop] drop  ${candidate.key} (${candidate.source}): ${outcome.reason}`);
+        continue; // ghost dropped — no card.
+      }
 
       const confidence = composeConfidence(
         {
@@ -88,12 +97,23 @@ export async function runLoop<TFields, TData>(
         },
         threshold,
       );
-      verified.push({ candidate, proof: outcome.proof, confidence });
+      log(`[loop] pass  ${candidate.key} (${candidate.source}): score=${outcome.verificationScore.toFixed(2)} confidence=${confidence.overall.toFixed(2)}${confidence.flagged ? " FLAGGED" : ""}`);
+
+      const result: VerifiedResult<TData> = { candidate, proof: outcome.proof, confidence };
+
+      // Policy filter inline — only accept results that pass user constraints.
+      if (chassis.policy && !chassis.policy(result, spec)) {
+        log(`[loop] policy drop  ${candidate.key}`);
+        continue;
+      }
+
+      verified.push(result);
+      // Stream this result immediately — caller can push to SSE before all candidates finish.
+      if (deps.onResult) await deps.onResult(result as VerifiedResult<unknown>);
     }
 
-    // policyFilter: user constraints, AFTER verify, BEFORE rank (4b). Only ever
-    // filters already-verified candidates.
-    const allowed = chassis.policy ? verified.filter((r) => chassis.policy!(r, spec)) : verified;
+    const allowed = verified; // policy already applied inline above
+    log(`[loop] ${verified.length} verified + policy-passed`);
 
     // synthesise: rank survivors via the chassis's notion of "best".
     const ranked = chassis.rank(allowed);
@@ -101,13 +121,17 @@ export async function runLoop<TFields, TData>(
 
     const bestOverall = ranked.reduce((m, r) => Math.max(m, r.confidence.overall), 0);
 
+    log(`[loop] ranked ${ranked.length} result(s), bestConfidence=${bestOverall.toFixed(2)}`);
+
     // confidenceGate: good enough?
     if (ranked.some((r) => !r.confidence.flagged)) {
+      log(`[loop] stop: gate satisfied`);
       return { results: ranked, iterations, stoppedBy: "gate", bestOverall };
     }
 
     // loopWider ONLY if this pass improved (E4); otherwise honest stop.
     if (bestOverall <= previousBest) {
+      log(`[loop] stop: no improvement (best=${bestOverall.toFixed(2)} ≤ prev=${previousBest.toFixed(2)})`);
       return { results: ranked, iterations, stoppedBy: "no-improvement", bestOverall };
     }
     previousBest = bestOverall;
@@ -118,15 +142,25 @@ export async function runLoop<TFields, TData>(
 async function fanOut<TFields, TData>(
   spec: Spec<TFields>,
   chassis: Chassis<TFields, TData>,
+  log: (msg: string) => void,
 ): Promise<Candidate<TData>[]> {
   const batches = await Promise.all(
     chassis.sources.map(async (s) => {
       try {
-        return await s.observe(spec as Spec<unknown>);
-      } catch {
+        const found = await s.observe(spec as Spec<unknown>);
+        log(`[fanout] source=${s.name} returned ${found.length} candidate(s)`);
+        return found;
+      } catch (e) {
+        log(`[fanout] source=${s.name} ERROR: ${String(e)}`);
         return [] as Candidate<TData>[]; // a source failing to observe doesn't sink the pass
       }
     }),
   );
-  return batches.flat();
+  // Deduplicate by key (URL) — StaticICE and Google may return the same product page
+  const seen = new Set<string>();
+  return batches.flat().filter((c) => {
+    if (seen.has(c.key)) return false;
+    seen.add(c.key);
+    return true;
+  });
 }

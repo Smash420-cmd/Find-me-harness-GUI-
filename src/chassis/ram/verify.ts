@@ -42,11 +42,34 @@ export interface RamVerifyDeps {
   ) => Promise<{ proof: ProofShot; live: RamLiveState }>;
 }
 
+/** Contradiction-only SKU check for the CHEAP layers (SERP titles, slug parses,
+ * HTTP pre-reads) — drops only when an attribute is KNOWN and wrong. Absence
+ * passes: a title that omits "(2x16GB)" may still be the right kit, and the
+ * verify tiers (which use the strict `matchesSpec`) remain the authority. */
+export function contradictsSpec(attrs: Partial<RamAttributes>, spec: RamSpecFields): string | null {
+  if (attrs.generation !== undefined && attrs.generation !== spec.generation)
+    return `generation ${attrs.generation} ≠ ${spec.generation}`;
+  if (attrs.capacityGb !== undefined && attrs.capacityGb !== spec.capacityGb)
+    return `capacity ${attrs.capacityGb}GB ≠ ${spec.capacityGb}GB`;
+  if (spec.dataRateMtps !== undefined && attrs.dataRateMtps !== undefined && attrs.dataRateMtps !== spec.dataRateMtps)
+    return `speed ${attrs.dataRateMtps} ≠ ${spec.dataRateMtps}`;
+  if (spec.kitCount !== undefined && attrs.kitCount !== undefined && attrs.kitCount !== spec.kitCount)
+    return `kit ${attrs.kitCount} ≠ ${spec.kitCount}`;
+  if (spec.perStickGb !== undefined && attrs.perStickGb !== undefined && attrs.perStickGb !== spec.perStickGb)
+    return `per-stick ${attrs.perStickGb}GB ≠ ${spec.perStickGb}GB`;
+  if (spec.casLatency !== undefined && attrs.casLatency !== undefined && attrs.casLatency > spec.casLatency)
+    return `CAS ${attrs.casLatency} looser than requested ${spec.casLatency}`;
+  const wantForm = spec.constraints?.formFactor ?? "dimm"; // desktop unless asked otherwise
+  if (attrs.formFactor !== undefined && attrs.formFactor !== wantForm)
+    return `${attrs.formFactor} ≠ ${wantForm}`;
+  return null;
+}
+
 /** Correct-SKU rule: does the live listing match what the user asked for? */
 export function matchesSpec(attrs: RamAttributes, spec: RamSpecFields): true | string {
   if (attrs.generation !== spec.generation) return `generation ${attrs.generation} ≠ ${spec.generation}`;
   if (attrs.capacityGb !== spec.capacityGb) return `capacity ${attrs.capacityGb}GB ≠ ${spec.capacityGb}GB`;
-  if (attrs.dataRateMtps !== spec.dataRateMtps) return `speed ${attrs.dataRateMtps} ≠ ${spec.dataRateMtps}`;
+  if (spec.dataRateMtps !== undefined && attrs.dataRateMtps !== spec.dataRateMtps) return `speed ${attrs.dataRateMtps} ≠ ${spec.dataRateMtps}`;
   if (spec.kitCount !== undefined && attrs.kitCount !== spec.kitCount) return `kit ${attrs.kitCount} ≠ ${spec.kitCount}`;
   if (spec.perStickGb !== undefined && attrs.perStickGb !== spec.perStickGb)
     return `per-stick ${attrs.perStickGb}GB ≠ ${spec.perStickGb}GB`;
