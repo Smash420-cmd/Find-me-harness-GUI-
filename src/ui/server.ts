@@ -29,7 +29,13 @@ import { GoogleSource } from "../chassis/ram/sources/google.js";
 import { WebSearchSource } from "../chassis/ram/sources/websearch.js";
 import { CatalogSource } from "../chassis/ram/sources/catalog.js";
 import { contradictsSpec } from "../chassis/ram/verify.js";
-import { parseRamAttributes, extractPartNumber } from "../chassis/ram/sources/parse.js";
+import {
+  skuIdentityOf,
+  identityMatches,
+  identityInBody as identityInBodyChassis,
+  pseudoSpecFromTitle,
+  type SkuIdentity,
+} from "../chassis/ram/identity.js";
 import { fetchText } from "../providers/net.js";
 import { PlaywrightValidator } from "../providers/validation/playwright.js";
 import { AnthropicLLMProvider } from "../providers/llm/anthropic.js";
@@ -87,53 +93,10 @@ export function createHarnessServer(opts: HarnessServerOptions = {}): Server {
       }),
   });
 
-  /** SKU identity ladder for the per-SKU price hunt. Strongest first:
-   *  1. Part number containment (F4-3200C16D-16GTZR is globally unique; stores
-   *     mangle punctuation, so compare alphanumeric-normalized).
-   *  2. Brand + product-line tokens ("gskill" + "trident" + "rgb") — separates
-   *     Trident Z RGB from a spec-identical Ripjaws V when the title has no MPN.
-   *  Attributes alone (tier 3) are handled by the pseudo-spec gate. */
-  const SKU_STOPWORDS = new Set(["ram", "memory", "desktop", "gaming", "kit", "series", "module", "dual", "channel", "pin", "dimm", "udimm", "sodimm", "black", "white", "grey", "gray", "red", "silver", "for", "and", "with", "edition"]);
-  function skuIdentityOf(title: string): { part?: string; tokens: string[] } {
-    const part = extractPartNumber(title);
-    const tokens = title.toLowerCase().replace(/[^a-z0-9\s]/g, "")
-      .split(/\s+/)
-      .filter((w) => w.length >= 2 && !/\d/.test(w) && !SKU_STOPWORDS.has(w));
-    return { ...(part ? { part } : {}), tokens };
-  }
-  function identityMatches(id: { part?: string; tokens: string[] }, pageTitle: string): "part" | "line" | null {
-    const norm = pageTitle.toLowerCase().replace(/[^a-z0-9]/g, "");
-    if (id.part && norm.includes(id.part.toLowerCase().replace(/[^a-z0-9]/g, ""))) return "part";
-    if (id.tokens.length > 0 && id.tokens.every((t) => norm.includes(t))) return "line";
-    return null;
-  }
-
-  /** Escalation tier: the title didn't prove identity, but the MPN is usually
-   * in the page BODY (specs table, meta tags, JSON-LD mpn). One extra GET,
-   * only for mismatches — rejecting outright could hide the cheapest listing. */
-  async function identityInBody(id: { part?: string; tokens: string[] }, url: string): Promise<boolean> {
-    if (!id.part) return false;
-    const html = await fetchText(url).catch(() => "");
-    return html.toLowerCase().replace(/[^a-z0-9]/g, "").includes(id.part.toLowerCase().replace(/[^a-z0-9]/g, ""));
-  }
-
-  /** Derive an identity gate from the clicked card's title: "find best price
-   * for THIS" must never show a different product (or a hand massager). The
-   * parsed attributes become a pseudo-spec for the same contradictsSpec /
-   * unconfirmable-SKU gates the scan uses. */
-  function pseudoSpecFromTitle(title: string): RamSpecFields | undefined {
-    const parsed = parseRamAttributes(title);
-    if (!parsed) return undefined;
-    const a = parsed.attributes;
-    return {
-      generation: a.generation,
-      capacityGb: a.capacityGb,
-      ...(a.kitCount !== undefined ? { kitCount: a.kitCount } : {}),
-      ...(a.perStickGb !== undefined ? { perStickGb: a.perStickGb } : {}),
-      ...(a.dataRateMtps !== undefined ? { dataRateMtps: a.dataRateMtps } : {}),
-      ...(a.formFactor === "sodimm" ? { constraints: { formFactor: "sodimm" as const } } : {}),
-    };
-  }
+  // SKU identity ladder + pseudo-spec gate now live in the chassis (Law 7 —
+  // domain meaning belongs there, not in the projection layer). identityInBody
+  // takes the fetch it should use, so the chassis stays testable.
+  const identityInBody = (id: SkuIdentity, url: string) => identityInBodyChassis(id, url, fetchText);
 
   /** Per-SKU candidate gathering for the price hunt: StaticICE (price engine) +
    * DDG/Bing part-number search + Google title search, in parallel, deduped. */
