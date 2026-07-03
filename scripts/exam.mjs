@@ -38,19 +38,21 @@ const startState = loadState(studentDir);
 if (startState.passed) { console.log("[exam] this student has already passed."); process.exit(0); }
 
 for (let i = startState.episodes; i < maxEpisodes; i++) {
+  const m = new AnthropicStudentModel(model); // fresh conversation each episode (C5)
   const rec = await runEpisode({
     studentDir,
     constitution: CONSTITUTION,
     examId,
     request: exam.request,
     key,
-    model: new AnthropicStudentModel(model), // fresh conversation each episode (C5)
+    model: m,
     tools,
     toolSpecs,
-    budgets: { maxToolCalls: 60, maxWallMs: 10 * 60_000, maxSubmissions: 3, stagnationEpisodes: 3 },
+    budgets: { maxToolCalls: 35, maxWallMs: 10 * 60_000, maxSubmissions: 3, stagnationEpisodes: 3 },
   });
   const scores = rec.submissions.map((s) => s.score).join(", ") || "—";
-  console.log(`[exam] episode ${rec.episode}: ended by ${rec.endedBy} · best ${rec.bestScore} · submissions [${scores}] · ${rec.toolCalls} tool call(s)`);
+  const cacheNote = m.uncached ? ` · tokens ${((m.uncached + m.cacheRead) / 1000).toFixed(0)}K (${Math.round((100 * m.cacheRead) / (m.cacheRead + m.uncached))}% cached)` : "";
+  console.log(`[exam] episode ${rec.episode}: ended by ${rec.endedBy} · best ${rec.bestScore} · submissions [${scores}] · ${rec.toolCalls} tool call(s)${cacheNote}`);
   if (rec.endedBy === "pass") {
     console.log(`\n[exam] 🎓 PASSED in ${rec.episode} episode(s). THE SCHOOL WORKS.`);
     process.exit(0);

@@ -167,9 +167,12 @@ export function studentTools(opts: StudentToolsOptions): { tools: Record<string,
       const { url, saveTo } = (input ?? {}) as { url?: unknown; saveTo?: unknown };
       const body = await doFetch(str(url));
       if (str(saveTo)) writeFileSync(jail(workspace, str(saveTo)), body);
-      const cap = 15_000;
+      // Return a lean preview, not the whole page: raw HTML dumped into context
+      // every fetch is what makes a long episode expensive. Full content goes to
+      // the workspace (saveTo) for run_script to parse cheaply.
+      const cap = 6_000;
       return body.length > cap
-        ? `${body.slice(0, cap)}\n…(content continues — ${body.length} characters total${str(saveTo) ? `, full copy saved to ${str(saveTo)}` : "; pass saveTo to keep a full copy"})`
+        ? `${body.slice(0, cap)}\n…(truncated — ${body.length} chars total${str(saveTo) ? `, full copy in ${str(saveTo)}` : "; pass saveTo then parse it with run_script instead of re-fetching"})`
         : body;
     },
 
@@ -259,9 +262,25 @@ export class AnthropicStudentModel implements StudentModel {
   private pendingToolUseId: string | null = null;
   private started = false;
   private readonly client: Anthropic;
+  cacheRead = 0; // observability: tokens served from cache (~0.1x price)
+  uncached = 0; // tokens billed at full price
 
   constructor(private readonly model: string, client?: Anthropic) {
     this.client = client ?? studentClient();
+  }
+
+  /** Keep exactly one rolling cache breakpoint: on the last message's last
+   * content block. Clear any prior one so we never exceed 4 breakpoints
+   * (system holds one; this is the second). */
+  private markCacheBreakpoint(): void {
+    for (const m of this.messages) {
+      if (Array.isArray(m.content)) for (const b of m.content) delete (b as { cache_control?: unknown }).cache_control;
+    }
+    const last = this.messages[this.messages.length - 1];
+    if (!last) return;
+    if (typeof last.content === "string") last.content = [{ type: "text", text: last.content }];
+    const blocks = last.content as Array<{ cache_control?: { type: "ephemeral" } }>;
+    if (blocks.length > 0) blocks[blocks.length - 1]!.cache_control = { type: "ephemeral" };
   }
 
   async next(transcript: Msg[], tools: ToolSpec[]): Promise<ModelTurn> {
@@ -285,10 +304,17 @@ export class AnthropicStudentModel implements StudentModel {
       }
     }
 
+    // Roll a cache breakpoint onto the last message each turn: the whole prior
+    // transcript (which we re-send every tool call) then bills at ~0.1x instead
+    // of full price. Combined with the cached system+tools block, this is the
+    // difference between linear and quadratic $ over a long agentic episode.
+    this.markCacheBreakpoint();
+
     const res = await this.client.messages.create({
       model: this.model,
       max_tokens: 2000,
-      system: this.system,
+      // Cached together (tools render before system): stable across the episode.
+      system: [{ type: "text", text: this.system, cache_control: { type: "ephemeral" } }],
       // One tool per turn: the runner's loop answers one tool_result at a time,
       // and each call is budget-counted, so parallel calls must be off.
       tool_choice: { type: "auto", disable_parallel_tool_use: true },
@@ -301,6 +327,11 @@ export class AnthropicStudentModel implements StudentModel {
     });
 
     this.messages.push({ role: "assistant", content: res.content });
+    if (res.usage) {
+      const u = res.usage as { cache_read_input_tokens?: number; cache_creation_input_tokens?: number; input_tokens?: number };
+      this.cacheRead += u.cache_read_input_tokens ?? 0;
+      this.uncached += (u.input_tokens ?? 0) + (u.cache_creation_input_tokens ?? 0);
+    }
     const text = res.content.filter((b) => b.type === "text").map((b) => (b as { text: string }).text).join("\n");
     const toolUse = res.content.find((b) => b.type === "tool_use") as Anthropic.ToolUseBlock | undefined;
     if (toolUse) {
