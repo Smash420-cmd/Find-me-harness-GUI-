@@ -4,7 +4,24 @@ One test per weekly Relay run (Wed 09:00 AEST), in order, until all are ticked.
 Each run: do the FIRST unchecked test, size it to one 5-hour Max window, record
 results, tick the box, commit, and write a short findings note. Then stop.
 
+## Execution model: the `claude` CLI is the student (on Max, free)
+
+The student runs via `scripts/exam-cli.mjs` — each episode is one `claude -p`
+invocation whose only tools are the world MCP server (`dist/exam/world-mcp.js`).
+This is the ONLY ToS-clean way to run on the Max plan: using the official
+`claude` binary on a subscription is permitted; the SDK path (`exam.mjs`) needs
+a metered `STUDENT_API_KEY` and must NEVER get a subscription token. Prefer the
+CLI path here — it's free on Max and `read_screenshot` becomes Claude Code's
+native vision. The MCP server is unit-tested; the exact `claude` flags need one
+first-run confirmation (noted in exam-cli.mjs) — the first session can adjust.
+
 ## Iron rules for every run
+
+0. **Prime Relay auto-resume at the START of the run** (it only functions when
+   primed via the skill/`/` command — a scheduled session won't bounce
+   otherwise). Arm it so that if this run hits the 5-hour OR weekly limit
+   mid-test, it resumes at the next reset of whichever ceiling it hit and
+   continues until the test finishes. Long on-Max runs depend on this.
 
 1. **Credential: ONLY a dedicated metered `STUDENT_API_KEY`.** Verified against
    Anthropic's terms (2026-07): the exam is SDK code, so it may use a real API
@@ -51,23 +68,28 @@ results, tick the box, commit, and write a short findings note. Then stop.
   is not set, STOP per rule 1 (no sanctioned key → no spend). Do NOT source a
   subscription token.
 
-- [ ] **T2 — Sonnet ladder (small).** `STUDENT_MODEL=claude-sonnet-5
-  node scripts/exam.mjs --world ram-v1 --exam ddr4-gskill --student sonnet-01
-  --episodes 5`. The open question: does a stronger model BUILD skill files /
-  use `run_script` to compound across episodes, where Haiku only brute-forced
-  effort (see MORNING-REPORT.md)? Record the score curve, the token readout, and
-  whether any skill files appeared in the workspace.
+- [ ] **T2 — CLI student on RAM (on Max, free).**
+  `node scripts/exam-cli.mjs --world ram-v1 --exam ddr4-gskill --student cc-01
+  --episodes 5`. First: confirm the `claude` flags work (built-ins hidden, only
+  the 7 world tools available) — fix exam-cli.mjs if not, that's expected on the
+  first live run. The open question: does the real agent BUILD skill files / use
+  run_script to compound, and how far does it climb? Record the curve and any
+  skill files. Note: the student is Claude Code (not blank-slate) — measures the
+  practical agent, not pure self-teaching.
 
 - [ ] **T3 — Books transfer test (generality, Spec 007 C8).**
-  `STUDENT_MODEL=claude-sonnet-5 node scripts/exam.mjs --world books-v1
-  --exam books-v1 --student books-01 --episodes 8`. The real generality signal:
-  does the RAM-trained approach transfer to a structurally distant domain
-  (ISBN not MPN, different sites) faster than it learned RAM? Record the curve
-  and compare episodes-to-progress against T2.
+  `node scripts/exam-cli.mjs --world books-v1 --exam books-v1 --student
+  books-cc-01 --episodes 8`. The real generality signal: does the approach
+  transfer to a structurally distant domain (ISBN not MPN, different sites)?
+  Compare episodes-to-progress against T2.
 
-- [ ] **T4 — Deeper Sonnet ladder (only if T2 promising).** 10–15 episodes on
-  ram-v1 chasing an actual pass (≥0.9), if a window allows. Record whether it
-  passes and what strategy emerged.
+- [ ] **T4 — Deeper run (only if T2 promising).** 10–15 episodes chasing an
+  actual pass (≥0.9). Auto-resume (rule 0) lets this span multiple windows and
+  self-complete. Record whether it passes and what strategy emerged.
+
+Note: the SDK path (`scripts/exam.mjs`) remains available for a clean-science
+blank-slate run, but only with a dedicated metered `STUDENT_API_KEY` — never on
+Max. Default to the CLI path above.
 
 ## Log
 
