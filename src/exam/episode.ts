@@ -129,13 +129,19 @@ export async function runEpisode(opts: RunnerOptions): Promise<EpisodeRecord> {
 
   const allTools: ToolSpec[] = [
     ...opts.toolSpecs,
-    { name: "submit_answer", description: "Submit your answer: a list of URLs. Returns a score and whether you have passed." },
+    {
+      name: "submit_answer",
+      description: "Submit your answer: the list of product-page URLs you are presenting. Returns a score and whether you have passed.",
+      schema: { type: "object", properties: { urls: { type: "array", items: { type: "string" }, description: "The URLs you are submitting as your answer." } }, required: ["urls"] },
+    },
   ];
 
   const start = now();
   const submissions: Verdict[] = [];
   let toolCalls = 0;
   let bestScore = 0;
+  let idleTurns = 0; // consecutive text-only (no tool) turns
+  const maxIdleTurns = 3;
   let endedBy: EndedBy = "model-stopped";
 
   // eslint-disable-next-line no-constant-condition
@@ -145,7 +151,20 @@ export async function runEpisode(opts: RunnerOptions): Promise<EpisodeRecord> {
 
     const turn = await opts.model.next(transcript, allTools);
     if (turn.text) transcript.push({ role: "assistant", content: turn.text });
-    if (!turn.toolCall) { endedBy = "model-stopped"; break; } // going quiet ends the EPISODE, never the task
+    if (!turn.toolCall) {
+      // A text-only turn is narration, not the end. Nudge with a RULE (already
+      // in the constitution — not a method hint), up to a cap, so a student
+      // that answers in prose learns it must submit. Only give-up after the
+      // cap ends the EPISODE (honest failure), never the task (Law 5).
+      idleTurns++;
+      if (idleTurns >= maxIdleTurns) { endedBy = "model-stopped"; break; }
+      transcript.push({
+        role: "user",
+        content: "Presenting an answer as a message does not complete the task. You must call submit_answer to be graded, and only a pass verdict ends the task. Continue.",
+      });
+      continue;
+    }
+    idleTurns = 0;
 
     toolCalls++;
     const { name, input } = turn.toolCall;

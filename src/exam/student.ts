@@ -251,7 +251,8 @@ export class AnthropicStudentModel implements StudentModel {
       this.messages.push({ role: "user", content: request?.content ?? "" });
       this.started = true;
     } else {
-      // The runner appended a tool result as the last transcript message.
+      // The runner appended either a tool result (after a tool call) or a
+      // plain user nudge (after a text-only turn — see the runner's idle path).
       const last = transcript[transcript.length - 1];
       if (last?.role === "tool" && this.pendingToolUseId) {
         this.messages.push({
@@ -259,6 +260,8 @@ export class AnthropicStudentModel implements StudentModel {
           content: [{ type: "tool_result", tool_use_id: this.pendingToolUseId, content: last.content }],
         });
         this.pendingToolUseId = null;
+      } else if (last?.role === "user") {
+        this.messages.push({ role: "user", content: last.content });
       }
     }
 
@@ -266,6 +269,9 @@ export class AnthropicStudentModel implements StudentModel {
       model: this.model,
       max_tokens: 2000,
       system: this.system,
+      // One tool per turn: the runner's loop answers one tool_result at a time,
+      // and each call is budget-counted, so parallel calls must be off.
+      tool_choice: { type: "auto", disable_parallel_tool_use: true },
       tools: tools.map((t) => ({
         name: t.name,
         description: t.description,
