@@ -45,3 +45,7 @@ server.err
 # generated screenshots — audit evidence IS committed, the rest is disposable
 screenshots/*
 !screenshots/audit/
+
+# scraped/experiment runtime — page HTML can embed third-party API keys; NEVER commit
+students/
+worlds/
