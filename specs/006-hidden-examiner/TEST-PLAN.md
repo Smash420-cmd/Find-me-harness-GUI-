@@ -6,10 +6,16 @@ results, tick the box, commit, and write a short findings note. Then stop.
 
 ## Iron rules for every run
 
-1. **NEVER use the business `ANTHROPIC_API_KEY`.** Credential precedence for the
-   student/eval: `STUDENT_API_KEY` env → a non-business OAuth/Max token available
-   to this session (`STUDENT_AUTH_TOKEN`) → otherwise DO NOT SPEND: report what
-   credential (if any) the session exposes, leave the box UNchecked, stop.
+1. **Credential: ONLY a dedicated metered `STUDENT_API_KEY`.** Verified against
+   Anthropic's terms (2026-07): the exam is SDK code, so it may use a real API
+   key (Commercial Terms — allowed, unambiguous) but must NEVER use the business
+   `ANTHROPIC_API_KEY`, and must NEVER use a Pro/Max OAuth token — using a
+   subscription OAuth token with the SDK is a Consumer-ToS violation that has led
+   to ACCOUNT SUSPENSIONS. Do NOT probe for or borrow a Max/session token. If
+   `STUDENT_API_KEY` is not set: DO NOT SPEND — write a one-line note that no
+   sanctioned key is set, leave every box unchecked, stop. (Relay scheduling the
+   official Claude Code CLI is fine; feeding a Max token to the SDK student is
+   not — that distinction is the whole ballgame.)
 2. **MEASURE THE BURN — this is the point of the early runs.** Record and report
    prominently, at the top of the results file AND in the one-line Log entry:
    total model tokens used (sum the per-episode `tokens NNNK (NN% cached)`
@@ -38,13 +44,12 @@ results, tick the box, commit, and write a short findings note. Then stop.
 
 ## The tests (do the first unchecked one)
 
-- [ ] **T1 — Credential probe + vision eval.** Determine what non-business
-  credential this session can give a Node SDK subprocess. If usable, run
-  `READER_API_KEY=<it> node scripts/eval-reader.mjs` (or wire the token) and
-  record the scorecard: does the vision reader read the audit screenshots
-  correctly (page-type + availability)? This is the product linchpin. If NO
-  usable credential, report the finding and STOP (leave unchecked) — this gates
-  every later test.
+- [ ] **T1 — Vision eval.** If a dedicated metered key is set, run
+  `READER_API_KEY=$STUDENT_API_KEY node scripts/eval-reader.mjs` and record the
+  scorecard: does the vision reader read the audit screenshots correctly
+  (page-type + availability)? This is the product linchpin. If `STUDENT_API_KEY`
+  is not set, STOP per rule 1 (no sanctioned key → no spend). Do NOT source a
+  subscription token.
 
 - [ ] **T2 — Sonnet ladder (small).** `STUDENT_MODEL=claude-sonnet-5
   node scripts/exam.mjs --world ram-v1 --exam ddr4-gskill --student sonnet-01

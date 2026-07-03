@@ -23,22 +23,25 @@ import type { Msg, ModelTurn, StudentModel, ToolImpl, ToolSpec } from "./episode
 const sha = (s: string) => createHash("sha256").update(s).digest("hex");
 
 /**
- * Build the Anthropic client for exam runs WITHOUT ever using the user's
- * metered ANTHROPIC_API_KEY (hard rule, 2026-07-05). Credential precedence:
- *   STUDENT_AUTH_TOKEN  → OAuth bearer (e.g. a Max-plan token) + oauth beta
- *   STUDENT_API_KEY     → a separate, dedicated metered key
- *   otherwise           → refuse. Never fall through to ANTHROPIC_API_KEY.
+ * Build the Anthropic client for exam runs. The ONLY sanctioned credential is a
+ * dedicated metered API key in STUDENT_API_KEY (Commercial Terms — no automation
+ * restrictions, no ambiguity).
+ *
+ * NOT supported, on purpose (verified against Anthropic's terms, 2026-07):
+ *  - the user's ANTHROPIC_API_KEY (their business key — off-limits for testing).
+ *  - a subscription (Pro/Max) OAuth token. Using a consumer OAuth token with the
+ *    SDK is a Consumer-ToS violation that has led to ACCOUNT SUSPENSIONS
+ *    (Jan 2026 enforcement; Feb 2026: the Agent SDK explicitly requires API-key
+ *    auth). Only the official `claude` CLI may ride a subscription. So the exam,
+ *    which is SDK code, must use a real API key — never a Max token.
  */
 export function studentClient(): Anthropic {
-  const authToken = process.env.STUDENT_AUTH_TOKEN?.trim();
-  if (authToken) {
-    return new Anthropic({ authToken, defaultHeaders: { "anthropic-beta": "oauth-2025-04-20" } });
-  }
   const apiKey = process.env.STUDENT_API_KEY?.trim();
   if (apiKey) return new Anthropic({ apiKey });
   throw new Error(
-    "refusing to run: set STUDENT_AUTH_TOKEN (Max-plan/OAuth) or STUDENT_API_KEY. " +
-      "The exam must NEVER use your metered ANTHROPIC_API_KEY.",
+    "refusing to run: set STUDENT_API_KEY to a dedicated metered API key. " +
+      "The exam is SDK code — it must NOT use ANTHROPIC_API_KEY (business key) " +
+      "or any Pro/Max OAuth token (a Consumer-ToS violation / account-ban risk).",
   );
 }
 
