@@ -1,0 +1,207 @@
+[
+  {
+    "id": "A1",
+    "url": "https://www.umart.com.au/product/kingston-32gb-2x16gb-kf432c16bbk2-32-fury-beast-cl16-3200mhz-ddr4-ram-black-63435",
+    "dropped": "out-of-stock (HTTP read)",
+    "note": "Kingston Fury Beast 2x16 3200 CL16 @ $149 — exact spec match, cheapest kit found",
+    "http": {
+      "title": "Kingston 32GB (2x16GB) KF432C16BBK2/32 Fury Beast CL16 3200MHz DDR4 RAM - Black",
+      "price": 149,
+      "availability": "out_of_stock",
+      "attrs": {
+        "generation": "DDR4",
+        "capacityGb": 32,
+        "dataRateMtps": 3200,
+        "perStickGb": 16,
+        "kitCount": 2,
+        "casLatency": 16
+      }
+    },
+    "render": {
+      "addToCart": "true",
+      "outOfStock": "true",
+      "visiblePrice": "149.00"
+    },
+    "shot": "C:\\Users\\pmdse\\Documents\\Find-me-harness-GUI\\screenshots\\audit\\proof-1782941105856-u80w4b.png"
+  },
+  {
+    "id": "A2",
+    "url": "https://www.msy.com.au/product/kingston-32gb-2x16gb-kf432c16bbk2-32-fury-beast-cl16-3200mhz-ddr4-ram-black-63435",
+    "dropped": "out-of-stock (HTTP read)",
+    "note": "same SKU at MSY",
+    "http": {
+      "title": "Kingston 32GB (2x16GB) KF432C16BBK2/32 Fury Beast CL16 3200MHz DDR4 RAM - Black",
+      "price": 149,
+      "availability": "out_of_stock",
+      "attrs": {
+        "generation": "DDR4",
+        "capacityGb": 32,
+        "dataRateMtps": 3200,
+        "perStickGb": 16,
+        "kitCount": 2,
+        "casLatency": 16
+      }
+    },
+    "render": {
+      "addToCart": "true",
+      "outOfStock": "true",
+      "visiblePrice": "149.00"
+    },
+    "shot": "C:\\Users\\pmdse\\Documents\\Find-me-harness-GUI\\screenshots\\audit\\proof-1782941113101-pycput.png"
+  },
+  {
+    "id": "B1",
+    "url": "https://memoz.com.au/product/2x16gb-2666-pc-ram/",
+    "dropped": "unconfirmable SKU (page never says DDR4)",
+    "note": "product page, possibly wrongly dropped",
+    "http": {
+      "title": "32GB 2x16GB 2666 PC RAM DDR4 Desktop Memory PC4 21300 &#8211; MemOZ | Computer Components for Performance Boost",
+      "price": null,
+      "availability": "in_stock",
+      "attrs": null
+    },
+    "render": {
+      "addToCart": "true",
+      "outOfStock": "false",
+      "visiblePrice": "0.00"
+    },
+    "shot": "C:\\Users\\pmdse\\Documents\\Find-me-harness-GUI\\screenshots\\audit\\proof-1782941131466-8edt9p.png"
+  },
+  {
+    "id": "B2",
+    "url": "https://memoz.com.au/product/2x16gb-3200-sodimm/",
+    "dropped": "unconfirmable SKU",
+    "note": "URL says sodimm — drop probably right, verify",
+    "http": {
+      "title": "32GB DDR4 2x16GB 3200 SoDimm RAM Laptop Notebook Memory &#8211; MemOZ | Computer Components for Performance Boost",
+      "price": null,
+      "availability": "in_stock",
+      "attrs": null
+    },
+    "render": {
+      "addToCart": "true",
+      "outOfStock": "false",
+      "visiblePrice": "0.00"
+    },
+    "shot": "C:\\Users\\pmdse\\Documents\\Find-me-harness-GUI\\screenshots\\audit\\proof-1782941150072-a2zdc2.png"
+  },
+  {
+    "id": "C1",
+    "url": "https://www.scorptec.com.au/product/memory/ddr4-laptop-memory/98940-ted432g3200c22-s01",
+    "dropped": "wrong SKU: kit 1 ≠ 2",
+    "note": "laptop path in URL",
+    "http": {
+      "title": "Team Elite 32GB (1x32GB) 3200MHz DDR4 SODIMM | Scorptec Computers",
+      "price": 349,
+      "availability": "in_stock",
+      "attrs": {
+        "generation": "DDR4",
+        "capacityGb": 32,
+        "dataRateMtps": 3200,
+        "perStickGb": 32,
+        "kitCount": 1,
+        "formFactor": "sodimm"
+      }
+    },
+    "render": {
+      "addToCart": "true",
+      "outOfStock": "true",
+      "visiblePrice": "0"
+    },
+    "shot": "C:\\Users\\pmdse\\Documents\\Find-me-harness-GUI\\screenshots\\audit\\proof-1782941157087-6vs7ga.png"
+  },
+  {
+    "id": "C2",
+    "url": "https://www.upgradeable.com.au/products/ul1913",
+    "dropped": "wrong SKU: sodimm ≠ dimm",
+    "note": "",
+    "http": {
+      "title": "32GB DDR4 3200 MHz SODIMM Module Lenovo Compatible | Upgradeable Australia",
+      "price": 389,
+      "availability": "in_stock",
+      "attrs": {
+        "generation": "DDR4",
+        "capacityGb": 32,
+        "dataRateMtps": 3200,
+        "formFactor": "sodimm"
+      }
+    },
+    "render": {
+      "addToCart": "true",
+      "outOfStock": "false",
+      "visiblePrice": "0"
+    },
+    "shot": "C:\\Users\\pmdse\\Documents\\Find-me-harness-GUI\\screenshots\\audit\\proof-1782941164659-6vzhcd.png"
+  },
+  {
+    "id": "C3",
+    "url": "https://www.upgradeable.com.au/products/ums1913",
+    "dropped": "wrong SKU: sodimm ≠ dimm",
+    "note": "",
+    "http": {
+      "title": "32GB DDR4 3200 MHz SODIMM Module Standard Compatible | Upgradeable Australia",
+      "price": 389,
+      "availability": "in_stock",
+      "attrs": {
+        "generation": "DDR4",
+        "capacityGb": 32,
+        "dataRateMtps": 3200,
+        "formFactor": "sodimm"
+      }
+    },
+    "render": {
+      "addToCart": "true",
+      "outOfStock": "false",
+      "visiblePrice": "0"
+    },
+    "shot": "C:\\Users\\pmdse\\Documents\\Find-me-harness-GUI\\screenshots\\audit\\proof-1782941172341-i6qsrc.png"
+  },
+  {
+    "id": "D1",
+    "url": "https://www.ebay.com.au/itm/116260890163",
+    "dropped": "google: no RAM attrs in slug",
+    "note": "/itm/ IS a product page — slug is just a number, suspect wrong drop",
+    "http": {
+      "error": "Error: GET https://www.ebay.com.au/itm/116260890163 → 403"
+    },
+    "render": {
+      "addToCart": "false",
+      "outOfStock": "false",
+      "visiblePrice": null
+    },
+    "shot": "C:\\Users\\pmdse\\Documents\\Find-me-harness-GUI\\screenshots\\audit\\proof-1782941174812-fa297q.png"
+  },
+  {
+    "id": "D2",
+    "url": "https://www.mwave.com.au/trending/32gb-ddr4-ram",
+    "dropped": "unconfirmable SKU",
+    "note": "category page — expect correct drop",
+    "http": {
+      "title": "",
+      "price": null,
+      "availability": "in_stock",
+      "attrs": null
+    },
+    "render": {
+      "addToCart": "false",
+      "outOfStock": "false",
+      "visiblePrice": null
+    },
+    "shot": "C:\\Users\\pmdse\\Documents\\Find-me-harness-GUI\\screenshots\\audit\\proof-1782941177074-ajhwga.png"
+  },
+  {
+    "id": "E1",
+    "url": "https://www.sbtech.com.au/dual-channel-32gb-2x16gb-ddr4-dram-vengeance-lpx-dimm-3000mhz/",
+    "dropped": "HTTP 404",
+    "note": "StaticICE listed it @ $293.15 — dead link or bot-block?",
+    "http": {
+      "error": "Error: GET https://www.sbtech.com.au/dual-channel-32gb-2x16gb-ddr4-dram-vengeance-lpx-dimm-3000mhz/ → 404"
+    },
+    "render": {
+      "addToCart": "false",
+      "outOfStock": "false",
+      "visiblePrice": null
+    },
+    "shot": "C:\\Users\\pmdse\\Documents\\Find-me-harness-GUI\\screenshots\\audit\\proof-1782941181582-ycq4bk.png"
+  }
+]
