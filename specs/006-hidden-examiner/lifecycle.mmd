@@ -1,0 +1,56 @@
+flowchart TD
+
+subgraph FACULTY["THE FACULTY — built once, then sealed"]
+  H["RAM harness<br/>(babysat = certified)"] --> W["Frozen world<br/>recorded runs + trap specimens"]
+  H --> K["Answer key<br/>(~20 verified truths)"]
+  K --> CERT{{"⭐ Human certifies key"}}
+  CERT --> J["THE JUDGE<br/>score + category hints + pass/fail<br/>asymmetric loss · sealed"]
+  W --> J
+end
+
+subgraph SCHOOL["THE SCHOOL — episode loop"]
+  S0["Blank-slate Student<br/>6 primitive tools · constitution only<br/>no domain context"] --> E["Episode begins<br/>fresh context · persistent workspace"]
+  E --> WRK["Explore world<br/>build / refine skill files"]
+  WRK --> SV["Self-verify:<br/>worth spending a submission?"]
+  SV --> SUB["Submit answer<br/>(max 3 per episode)"]
+  SUB --> J
+  J --> V{"Pass?"}
+  V -- "no" --> B{"Budget &<br/>attempts left?"}
+  B -- "yes" --> WRK
+  B -- "no" --> EF["Episode ends in honest failure<br/>skills + score history PERSIST"]
+  EF --> STAG{"Score flat<br/>across 3 episodes?"}
+  STAG -- "yes" --> SC["Forced structural<br/>strategy change (E4)"]
+  SC --> E
+  STAG -- "no" --> E
+end
+
+V -- "YES" --> G1
+
+subgraph GATES["GRADUATION GATES"]
+  G1["🎓 EXAM 1 PASSED<br/>THE SCHOOL WORKS<br/>protocol proven · RAM matched, not beaten"]
+  G1 --> G2["Exam 2 — structurally distant domain<br/>(hand-made key, one human afternoon)"]
+  G2 --> TR{"Passed materially faster?<br/>(transfer ratio well below 1)"}
+  TR -- "no — skills were memorisation" --> MEM["Widen curriculum<br/>back to school"]
+  MEM --> E
+  TR -- "yes" --> G3["🌍 GENERALITY CLAIMED"]
+  G3 --> SH["Shadow mode:<br/>graduate vs live harness,<br/>same queries, live web"]
+  SH --> PAR{"Parity with<br/>production?"}
+  PAR -- "no — sim-to-real gap" --> E
+  PAR -- "yes" --> G4["✅ REALITY CERTIFIED"]
+end
+
+subgraph HARVEST["THE HARVEST — fork at graduation"]
+  G4 --> AUD{{"⭐ Human audits skill files<br/>(readable text — magistrate's ruling)"}}
+  AUD --> DIST["Distill into deterministic harness<br/>AI taught it · functions run it"]
+  DIST --> SHIP["🚢 SHIPPABLE<br/>domain product = /oncrack chassis"]
+  AUD --> CORE["Transferable core<br/>(only skills reused across 2+ exams)"]
+  CORE --> NEXT["Seed NEXT Student<br/>next exam at wider distance"]
+  NEXT --> E
+end
+
+classDef milestone fill:#3a2f14,stroke:#e3a008,stroke-width:3px,color:#ffd700
+classDef human fill:#202b38,stroke:#9fb2c8,stroke-width:2px,color:#dfe9f5
+classDef judge fill:#1a2530,stroke:#2ea043,stroke-width:2px,color:#3fb950
+class G1,G3,G4,SHIP milestone
+class CERT,AUD human
+class J judge
