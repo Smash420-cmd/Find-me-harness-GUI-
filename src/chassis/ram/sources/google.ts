@@ -7,7 +7,7 @@
  * returns nothing — StaticICE results are still available in that case.
  */
 import type { Candidate, ISourceProvider, Spec, SourceCapabilities } from "../../../types/index.js";
-import type { PlaywrightValidator } from "../../../providers/validation/playwright.js";
+import type { RenderProvider } from "../../../providers/index.js";
 import { fetchText } from "../../../providers/net.js";
 import { parseProductPage, parseRamAttributes } from "./parse.js";
 import type { RamAttributes, RamCandidateData, RamLiveState, RamSpecFields } from "../types.js";
@@ -134,7 +134,7 @@ export class GoogleSource implements ISourceProvider<RamCandidateData> {
   readonly capabilities: SourceCapabilities = { hasApi: false, hasStockFlag: false, rendersClean: false };
   readonly reliability = 0.75;
 
-  constructor(private readonly validator: PlaywrightValidator) {}
+  constructor(private readonly validator: RenderProvider) {}
 
   // Common URL path words that aren't part of a product name
   private static readonly PATH_NOISE = new Set(["products", "product", "buy", "shop", "p", "item", "items", "itm", "detail", "details", "listing", "listings", "store", "catalogue", "catalog"]);

@@ -41,11 +41,13 @@ export interface HarnessServerOptions {
   readonly maxCandidates?: number;
   readonly maxIterations?: number;
   readonly wallClockMs?: number;
+  /** Injectable renderer — the composition root may pass a world-wrapped one (Spec 006). */
+  readonly validator?: import("../providers/index.js").RenderProvider;
 }
 
 export function createHarnessServer(opts: HarnessServerOptions = {}): Server {
   const staticiceSource = new StaticIceSource({ maxCandidates: opts.maxCandidates ?? 20 });
-  const validator = new PlaywrightValidator();
+  const validator = opts.validator ?? new PlaywrightValidator();
   const googleSource = new GoogleSource(validator);
   const webSearchSource = new WebSearchSource(validator); // browser fallback when engines bot-wall HTTP
   const catalogSource = new CatalogSource(validator); // retailers' own category pages — best recall
@@ -258,10 +260,13 @@ export function createHarnessServer(opts: HarnessServerOptions = {}): Server {
         log(`[scan] ✗ read: ${c.key}: ${e}`);
       }
     }));
+    // Deterministic order (key tiebreak): reads complete in network-timing
+    // order, and a stable sort preserves that for ties — same inputs must
+    // yield the same board, or replayed worlds (Spec 006) can't grade runs.
     if (budgetAud || sortByPrice) {
-      inStock.sort((a, b) => a.priceAud - b.priceAud);
+      inStock.sort((a, b) => a.priceAud - b.priceAud || a.c.key.localeCompare(b.c.key));
     } else {
-      inStock.sort((a, b) => a.retailer.localeCompare(b.retailer));
+      inStock.sort((a, b) => a.retailer.localeCompare(b.retailer) || a.c.key.localeCompare(b.c.key));
     }
     if (identityDiscards > 0) log(`[scan] ${identityDiscards} listing(s) could not be confirmed as this product — shown in the fallback section`);
     log(`[scan] ${inStock.length} in-stock — verifying on render (proof shots)…`);
@@ -482,7 +487,8 @@ export function createHarnessServer(opts: HarnessServerOptions = {}): Server {
       }));
 
       // Every survivor IS this product — cheapest first, crown lands on [0].
-      inStock.sort((a, b) => a.priceAud - b.priceAud);
+      // Key tiebreak keeps equal prices deterministic (Spec 006 replay grading).
+      inStock.sort((a, b) => a.priceAud - b.priceAud || a.url.localeCompare(b.url));
       log(`[bestprice] ${inStock.length} in-stock retailer(s) — taking proof shots cheapest-first…`);
 
       // Phase 2: Playwright proof shots cheapest-first — the render is the

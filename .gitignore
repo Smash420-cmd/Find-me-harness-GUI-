@@ -45,3 +45,6 @@ server.err
 # generated screenshots — audit evidence IS committed, the rest is disposable
 screenshots/*
 !screenshots/audit/
+
+# frozen worlds (Spec 006) — recorded snapshots are large; commit deliberately, not by default
+worlds/

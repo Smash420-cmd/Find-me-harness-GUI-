@@ -43,6 +43,13 @@ export interface IValidationProvider {
   }) => Promise<CaptureResult>;
 }
 
+/** What the harness needs from a renderer: the capture seam plus the
+ * discovery `browse` used by SERP/catalog sources. PlaywrightValidator
+ * satisfies it; so do the exam's record/replay decorators (Spec 006). */
+export interface RenderProvider extends IValidationProvider {
+  browse: (url: string, extractJs: string) => Promise<string[]>;
+}
+
 /** Memory seam — STUB in v1 (get → miss). Local-first later, behind a benchmark. */
 export interface ICacheProvider {
   /** Recall a *fact* only — never liveness (Law 2). */

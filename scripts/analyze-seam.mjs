@@ -65,8 +65,25 @@ for (const file of walk(ENGINE_DIR)) {
   });
 }
 
+// 3. Plan 006 §2 — the examiner is scaffolding AROUND the harness. src/exam
+//    may import the harness; the harness may never import src/exam. The one
+//    exemption is the composition root (src/ui/start.ts), which wires worlds.
+const HARNESS_DIRS = ["src/engine", "src/chassis", "src/providers", "src/ui"];
+const EXAM_EXEMPT = new Set(["src/ui/start.ts", "src\\ui\\start.ts"]);
+for (const dir of HARNESS_DIRS) {
+  for (const file of walk(dir)) {
+    if (EXAM_EXEMPT.has(file)) continue;
+    const code = stripComments(readFileSync(file, "utf8"));
+    for (const m of code.matchAll(/import[\s\S]*?from\s*["']([^"']+)["']/g)) {
+      if (/\/exam\//.test(m[1]) || m[1].endsWith("/exam")) {
+        violations.push(`${file}: harness imports from exam → '${m[1]}' (Plan 006 §2 — only start.ts may)`);
+      }
+    }
+  }
+}
+
 if (violations.length > 0) {
   console.error("✗ /analyze: separation law violated:\n" + violations.map((v) => "  - " + v).join("\n"));
   process.exit(1);
 }
-console.log("✓ /analyze: engine is domain-free; no engine→chassis import (E6 holds).");
+console.log("✓ /analyze: engine is domain-free; no engine→chassis import (E6); harness never imports exam (Plan 006 §2).");
