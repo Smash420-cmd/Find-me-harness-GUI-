@@ -53,3 +53,4 @@ worlds/
 # student runtime — episode transcripts kept as artifacts; workspace + state are disposable
 students/*/workspace/
 students/*/state.json
+!worlds/*/urls.json
