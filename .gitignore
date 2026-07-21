@@ -50,7 +50,6 @@ screenshots/*
 worlds/
 !worlds/*/manifest.json
 
-# student runtime — episode transcripts kept as artifacts; workspace + state are disposable
-students/*/workspace/
-students/*/state.json
+# student runtime — never committed: stream logs embed scraped page content (secret-leak risk)
+students/
 !worlds/*/urls.json

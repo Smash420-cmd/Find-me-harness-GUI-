@@ -68,7 +68,7 @@ first-run confirmation (noted in exam-cli.mjs) — the first session can adjust.
   is not set, STOP per rule 1 (no sanctioned key → no spend). Do NOT source a
   subscription token.
 
-- [ ] **T2 — CLI student on RAM (on Max, free).**
+- [x] **T2 — CLI student on RAM (on Max, free).**
   `node scripts/exam-cli.mjs --world ram-v1 --exam ddr4-gskill --student cc-01
   --episodes 5`. First: confirm the `claude` flags work (built-ins hidden, only
   the 7 world tools available) — fix exam-cli.mjs if not, that's expected on the
@@ -94,3 +94,7 @@ Max. Default to the CLI path above.
 ## Log
 
 (Each run appends: date, test, outcome, one-line finding.)
+
+- 2026-07-08 · T1 · BLOCKED — no `STUDENT_API_KEY` anywhere AND `scripts/eval-reader.mjs` doesn't exist; $0 spent (results/t1-vision-eval.md). Run then died: exam launched in background, Relay killed it at turn end.
+- 2026-07-15 · T2 · LOST — same background-kill mistake; student was mid-episode-1 (had saved 2 pages) when the host exited. Zero scores.
+- 2026-07-22 · T2 · DONE — curve 0.61→0.57→0.57→0.39→0.57, no pass, **no compounding: ep2 wrote excellent strategy notes, eps 3–5 never read them (0 workspace listings)**. Burn: 75K output tok / 232 turns / 17 min ≈ $5.80 API-equiv — negligible vs weekly Max; wall-clock is the real constraint (~3.5 min/ep). Flags verified (7 world tools only). Stopped before T3: 41 min block headroom < ~30 min needed.

@@ -6,13 +6,10 @@
  * MCP server (dist/exam/world-mcp.js). No SDK, no metered key, no OAuth token —
  * runs on the user's Max plan, which is the permitted way to automate Claude.
  *
- * ⚠ FIRST-RUN VERIFICATION NEEDED: the MCP server is unit-tested offline, but
- * the exact `claude` flags below (tool-restriction, stream-json shape) are read
- * from `claude --help`, not yet confirmed against a live run. The first Relay
- * session (itself Claude Code) should confirm/adjust: whether --disallowedTools
- * fully hides the built-ins, and the stream-json result field names. Scores are
- * read from the MCP server's submissions log, so they don't depend on parsing
- * stream-json — that part is robust regardless.
+ * Flags verified live 2026-07-08: `--tools ""` hides ALL built-ins and
+ * `--strict-mcp-config` blocks the user's other MCP servers (Gmail etc.) —
+ * a smoke run listed exactly the 7 mcp__world__* tools. Scores are read from
+ * the MCP server's submissions log; usage/burn from the stream-json result event.
  */
 import { spawn } from "node:child_process";
 import { mkdirSync, writeFileSync, readFileSync, existsSync, rmSync } from "node:fs";
@@ -25,6 +22,7 @@ const worldDir = join("worlds", arg("world", "ram-v1"));
 const examId = arg("exam", "ddr4-gskill");
 const studentId = arg("student", "cc-01");
 const maxEpisodes = Number(arg("episodes", "5"));
+const model = arg("model", "sonnet"); // student model; the burn scales with this
 
 const key = loadKey(join(worldDir, "key.json")); // throws if uncertified (C7)
 const exam = key.exams.find((e) => e.id === examId);
@@ -42,7 +40,7 @@ if (existsSync(subsLog)) rmSync(subsLog); // fresh per process; scores persist i
 const mcpConfig = join(studentDir, "mcp.json");
 const T = ["search", "fetch", "screenshot", "read_screenshot", "write_file", "run_script", "submit_answer"];
 const allowed = T.map((t) => `mcp__world__${t}`).join(",");
-const builtins = ["Bash", "Read", "Write", "Edit", "MultiEdit", "Glob", "Grep", "WebFetch", "WebSearch", "Task", "NotebookEdit"].join(",");
+const burn = { turns: 0, in: 0, out: 0, cacheRead: 0, cacheWrite: 0, ms: 0 }; // totals across episodes
 
 console.log(`[exam-cli] world=${worldDir} exam=${examId} student=${studentId} — the claude CLI is the student, on Max`);
 
@@ -61,18 +59,35 @@ for (let i = state.episodes; i < maxEpisodes; i++) {
   const args = [
     "-p", exam.request,
     "--system-prompt", system,
-    "--mcp-config", mcpConfig,
+    "--model", model,
+    "--mcp-config", mcpConfig, "--strict-mcp-config",
+    "--tools", "", // no built-ins: the world server is the whole universe
     "--allowedTools", allowed,
-    "--disallowedTools", builtins,
     "--max-turns", "35",
     "--dangerously-skip-permissions",
     "--output-format", "stream-json", "--verbose",
   ];
-  console.log(`[exam-cli] episode ${episode}: launching claude…`);
+  console.log(`[exam-cli] episode ${episode}: launching claude (${model})…`);
+  const streamLog = join(studentDir, `episode-${episode}.stream.jsonl`);
   await new Promise((resolve) => {
-    const cc = spawn("claude", args, { stdio: ["ignore", "inherit", "inherit"], shell: process.platform === "win32" });
+    // no shell: true — it word-splits the prompt/system args on Windows (found live 2026-07-08)
+    const cc = spawn("claude", args, { stdio: ["ignore", "pipe", "inherit"] });
+    let buf = "";
+    cc.stdout.on("data", (d) => { buf += d; });
     cc.on("error", (e) => { console.error(`[exam-cli] claude failed to launch: ${e.message}`); resolve(); });
-    cc.on("close", resolve);
+    cc.on("close", () => {
+      writeFileSync(streamLog, buf);
+      const res = buf.trim().split("\n").map((l) => { try { return JSON.parse(l); } catch { return null; } })
+        .find((o) => o?.type === "result");
+      if (res) {
+        const u = res.usage ?? {};
+        burn.turns += res.num_turns ?? 0; burn.ms += res.duration_ms ?? 0;
+        burn.in += u.input_tokens ?? 0; burn.out += u.output_tokens ?? 0;
+        burn.cacheRead += u.cache_read_input_tokens ?? 0; burn.cacheWrite += u.cache_creation_input_tokens ?? 0;
+        console.log(`[exam-cli] episode ${episode}: ${res.num_turns} turns · in ${u.input_tokens} out ${u.output_tokens} cacheR ${u.cache_read_input_tokens} cacheW ${u.cache_creation_input_tokens} · ${Math.round((res.duration_ms ?? 0) / 1000)}s`);
+      } else console.log(`[exam-cli] episode ${episode}: no result event in stream (see ${streamLog})`);
+      resolve();
+    });
   });
 
   // Read scores back from the MCP server's submissions log (robust — no stream-json parse).
@@ -88,6 +103,7 @@ for (let i = state.episodes; i < maxEpisodes; i++) {
   if (improved) state.lastImprovedEpisode = episode;
   writeFileSync(statePath, JSON.stringify(state, null, 1));
   console.log(`[exam-cli] episode ${episode}: best ${best} · ${subs.length} submission(s)${passed ? " · PASSED" : ""}`);
-  if (passed) { console.log(`\n[exam-cli] 🎓 PASSED in ${episode} episode(s) — on Max, zero metered $.`); process.exit(0); }
+  if (passed) { console.log(`\n[exam-cli] 🎓 PASSED in ${episode} episode(s) — on Max, zero metered $.`); break; }
 }
 console.log(`\n[exam-cli] curve: ${state.scoreHistory.join(" → ")}`);
+console.log(`[exam-cli] BURN: ${burn.turns} turns · in ${burn.in} out ${burn.out} cacheR ${burn.cacheRead} cacheW ${burn.cacheWrite} · ${Math.round(burn.ms / 60000)} min model time`);
