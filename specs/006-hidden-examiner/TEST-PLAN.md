@@ -29,10 +29,13 @@ first-run confirmation (noted in exam-cli.mjs) — the first session can adjust.
    `ANTHROPIC_API_KEY`, and must NEVER use a Pro/Max OAuth token — using a
    subscription OAuth token with the SDK is a Consumer-ToS violation that has led
    to ACCOUNT SUSPENSIONS. Do NOT probe for or borrow a Max/session token. If
-   `STUDENT_API_KEY` is not set: DO NOT SPEND — write a one-line note that no
-   sanctioned key is set, leave every box unchecked, stop. (Relay scheduling the
-   official Claude Code CLI is fine; feeding a Max token to the SDK student is
-   not — that distinction is the whole ballgame.)
+   `STUDENT_API_KEY` is not set: DO NOT SPEND on any SDK-path test — this rule
+   gates ONLY SDK-path tests; CLI-on-Max tests spend nothing metered and always
+   may run. (Relay scheduling the official Claude Code CLI is fine; feeding a
+   Max token to the SDK student is not — that distinction is the whole
+   ballgame.) User ruling 2026-07-24: all tests run on the subscription — no
+   metered key is planned; any test written against the SDK is miswritten,
+   rewrite it for the CLI.
 2. **MEASURE THE BURN — this is the point of the early runs.** Record and report
    prominently, at the top of the results file AND in the one-line Log entry:
    total model tokens used (sum the per-episode `tokens NNNK (NN% cached)`
@@ -61,12 +64,16 @@ first-run confirmation (noted in exam-cli.mjs) — the first session can adjust.
 
 ## The tests (do the first unchecked one)
 
-- [ ] **T1 — Vision eval.** If a dedicated metered key is set, run
-  `READER_API_KEY=$STUDENT_API_KEY node scripts/eval-reader.mjs` and record the
-  scorecard: does the vision reader read the audit screenshots correctly
-  (page-type + availability)? This is the product linchpin. If `STUDENT_API_KEY`
-  is not set, STOP per rule 1 (no sanctioned key → no spend). Do NOT source a
-  subscription token.
+- [ ] **T1 — Vision eval (on Max, free).** User ruling 2026-07-24: ALL tests
+  run on the subscription via the `claude` CLI — no metered key exists or is
+  planned. Build a small exam-cli-style wrapper: for each screenshot in
+  `worlds/ram-v1/capture/*.png`, one `claude -p` call (native vision via Read,
+  no MCP, no other tools) asking page-type + availability as JSON; score
+  against the paired capture `.json` metadata and `worlds/ram-v1/vision/*.json`
+  truths. Record the scorecard: does vision read the audit screenshots
+  correctly? This is the product linchpin. The SDK path
+  (`eval-reader.mjs`, branch `feature/vision-reader`) stays parked — it needs a
+  metered key we're not creating.
 
 - [x] **T2 — CLI student on RAM (on Max, free).**
   `node scripts/exam-cli.mjs --world ram-v1 --exam ddr4-gskill --student cc-01
