@@ -64,7 +64,7 @@ first-run confirmation (noted in exam-cli.mjs) — the first session can adjust.
 
 ## The tests (do the first unchecked one)
 
-- [ ] **T1 — Vision eval (on Max, free).** User ruling 2026-07-24: ALL tests
+- [x] **T1 — Vision eval (on Max, free).** User ruling 2026-07-24: ALL tests
   run on the subscription via the `claude` CLI — no metered key exists or is
   planned. Build a small exam-cli-style wrapper: for each screenshot in
   `worlds/ram-v1/capture/*.png`, one `claude -p` call (native vision via Read,
@@ -105,3 +105,4 @@ Max. Default to the CLI path above.
 - 2026-07-08 · T1 · BLOCKED — no `STUDENT_API_KEY` anywhere AND `scripts/eval-reader.mjs` doesn't exist; $0 spent (results/t1-vision-eval.md). Run then died: exam launched in background, Relay killed it at turn end.
 - 2026-07-15 · T2 · LOST — same background-kill mistake; student was mid-episode-1 (had saved 2 pages) when the host exited. Zero scores.
 - 2026-07-22 · T2 · DONE — curve 0.61→0.57→0.57→0.39→0.57, no pass, **no compounding: ep2 wrote excellent strategy notes, eps 3–5 never read them (0 workspace listings)**. Burn: 75K output tok / 232 turns / 17 min ≈ $5.80 API-equiv — negligible vs weekly Max; wall-clock is the real constraint (~3.5 min/ep). Flags verified (7 world tools only). Stopped before T3: 41 min block headroom < ~30 min needed.
+- 2026-07-29 · T1 · DONE — 83 screenshots, one `claude -p` each. **Vision is right and the recorded DOM truth is wrong**: raw agreement price 58/81, addToCart 64/83, inStock 71/83, pageType 79/83 — but on 8 PNGs opened by hand across all 6 disagreement classes, vision matched the pixels 8/8 and the capture field never did. Root cause `playwright.ts:132-152`: `_visiblePrice` = first `$N` in whole-DOM innerText (13/14 Scorptec captures read "250"; real prices 319–789) or the struck-through RRP (5/5 Centrecom), `_outOfStock` regex hits filter labels and one sold-out store row (8 of 10 recorded OOS are false), `_addToCart` matches any DOM button while the shot is a 1280×720 crop. **Worst: a 404 and an eBay error page both recorded `_outOfStock:false` → certify as in-stock.** Burn: 18.9K output / 12 min / ≈$2.00 API-equiv, $0 metered — the cheapest test yet.
