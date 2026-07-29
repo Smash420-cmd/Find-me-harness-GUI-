@@ -22,7 +22,13 @@ const worldDir = join("worlds", arg("world", "ram-v1"));
 const examId = arg("exam", "ddr4-gskill");
 const studentId = arg("student", "cc-01");
 const maxEpisodes = Number(arg("episodes", "5"));
-const model = arg("model", "sonnet"); // student model; the burn scales with this
+// Student model. Pinned to a full ID, not an alias: an alias floats to whatever is
+// latest and would silently change what the exam measures between runs.
+// Upgraded sonnet -> claude-opus-5 (Patrick, 2026-07-29).
+// Burn AND wall clock both scale with this. Prior sonnet baseline was ~3.1 min/episode,
+// which set the "6 episodes safe, 8 the ceiling" rule for Relay's 45-min task cap.
+// That rule is calibrated for sonnet — re-measure before sizing an episode batch.
+const model = arg("model", "claude-opus-5");
 
 const key = loadKey(join(worldDir, "key.json")); // throws if uncertified (C7)
 const exam = key.exams.find((e) => e.id === examId);
