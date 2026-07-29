@@ -61,11 +61,49 @@ The student's own `notes.md` worked this out independently and correctly:
 
 Confirmed against the episode-8 stream: the only retailer hosts the student ever saw were
 amazon, barnesandnoble, christianbook, books2door, goodreads, jamesclear.com, target,
-walmart. Books-A-Million and Third Place Books are in the world's URL index but no search
-query surfaces them. **The student cannot submit URLs it cannot discover.** A large part of
-the "failure" to reach 1.0 is a world-authoring gap, not a student failure.
+walmart. **The student cannot submit URLs it cannot discover.**
 
-This needs deciding before T3's score is treated as a capability measurement — see NEEDS YOU.
+### Root cause: those two truths were never captured at all
+
+Not a ranking problem — a recording problem. Their `worlds/books-v1/fetch` records have
+keys `url,error` and **zero body**:
+
+```
+GET https://www.booksamillion.com/p/Atomic-Habits/James-Clear/9780735211292 → 403
+GET https://www.thirdplacebooks.com/book/9780735211292 → 403
+```
+
+**5 of 13 fetch records are error-only** (403/406 bot-walls): booksamillion, thirdplacebooks,
+thriftbooks, hpb.com, mcnallyrobinson. With no body there is no text and no `<title>`, so
+they are not in the search index, cannot be fetched, cannot be screenshotted, and cannot be
+verified. They are unreachable by every tool the student has.
+
+The world author clearly knew bot-walls existed — **mcnallyrobinson (403) is correctly
+filed as a trap with `category: "bot-wall"`**. But booksamillion and thirdplacebooks, which
+failed exactly the same way, are filed as **truths**. `key.json` certifies (C7 `loadKey`
+passes) a rubric that demands two URLs the student is physically prevented from seeing.
+
+So the reachable truth set is 3, not 5: amazon, barnesandnoble, christianbook. The student
+submitted exactly those three in episode 8 and scored 0.6667 — it hit the reachable ceiling.
+
+Open question, not chased here: christianbook is a captured truth, yet the student's probing
+showed it contributing zero credit (submitting Amazon+B&N alone and Amazon+B&N+christianbook
+both scored 0.6667). Its page carries a `dataLayer` "Out of Stock" and a past-due backorder
+date, so the judge may be penalising it against the "buy new right now" clause. Worth a look
+before anyone treats 0.6667 as the true maximum — the real ceiling may be 2 reachable truths,
+not 3.
+
+### This is not fixed by the in-flight `og:title` change
+
+There is an uncommitted change in `src/exam/student.ts` preferring `og:title` when `<title>`
+is shorter than 12 chars. Sound fix for the RAM/PLE case (generic "Home" titles losing the
+per-term title bonus at `student.ts:107`). It does **nothing** here: these two records have
+`<title>` length 0 **and** empty `og:title`, so the fallback resolves back to `""`. Verified
+by reading the capture bodies directly.
+
+The fix for T3's ceiling is at record time, not index time: re-record with a real browser
+(the successful captures came through Playwright), or reclassify the 403s as traps the way
+mcnallyrobinson already is.
 
 ## The other finding: memory is now READ, and it still doesn't compound
 
