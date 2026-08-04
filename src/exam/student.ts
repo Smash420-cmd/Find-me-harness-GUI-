@@ -77,7 +77,14 @@ function worldIndex(worldDir: string): IndexEntry[] {
       try {
         const rec = JSON.parse(readFileSync(join(fetchDir, f), "utf8")) as { url: string; body?: string };
         if (!rec.body) continue;
-        const title = /<title>([\s\S]*?)<\/title>/i.exec(rec.body)?.[1]?.replace(/\s+/g, " ").trim() ?? "";
+        // A useless <title> ("Home" on every PLE product page) costs the doc the
+        // per-term title bonus below, so real products lose the top 10 to fat
+        // generic pages. og:title carries the real name — prefer it when <title>
+        // is too short to be a product name. ponytail: length heuristic, not a
+        // site list; swap for per-host rules only if another world needs it.
+        const rawTitle = /<title>([\s\S]*?)<\/title>/i.exec(rec.body)?.[1]?.replace(/\s+/g, " ").trim() ?? "";
+        const title = rawTitle.length >= 12 ? rawTitle
+          : /<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)/i.exec(rec.body)?.[1]?.replace(/\s+/g, " ").trim() ?? rawTitle;
         const text = rec.body.replace(/<script[\s\S]*?<\/script>/gi, "").replace(/<style[\s\S]*?<\/style>/gi, "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").toLowerCase();
         entries.push({ url: rec.url, title, text: text.slice(0, 200_000) });
       } catch {
