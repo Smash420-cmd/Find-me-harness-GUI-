@@ -6,19 +6,21 @@
 
 ## BURN (the headline number)
 
+Totals across **3 student episodes** — 2 for the pass, 1 for the replication:
+
 | | |
 |---|---|
-| Episodes run | **2** (budgeted 10–15; the runner exits on pass) |
-| Student wall-clock | **7.2 min** model time (233s + 196s) |
-| Measured Opus rate | **~3.6 min/episode** (3.9 + 3.3) |
-| Turns | 73 (36 + 37) |
-| Output tokens | 26,405 |
-| Input tokens | 122 |
-| Cache read | 2,744,731 |
-| Cache write | 158,062 |
+| Episodes run | **3** (budgeted 10–15; the runner exits on pass) |
+| Student wall-clock | **10.6 min** model time (233s + 196s + 204s) |
+| Measured Opus rate | **~3.5 min/episode** (3.9 / 3.3 / 3.4) |
+| Turns | 112 (36 + 37 + 39) |
+| Output tokens | 38,864 |
+| Input tokens | 172 |
+| Cache read | 3,642,293 |
+| Cache write | 225,244 |
 | Metered spend | **$0.00** |
-| API-equivalent | **≈ $9.06** at published Opus rates |
-| Total run wall-clock | ~30 min of the 45-min Relay cap |
+| API-equivalent | **≈ $12.60** at published Opus rates |
+| Total run wall-clock | ~25 min of the 45-min Relay cap |
 | Weekly Max quota | negligible — see below |
 
 **Fraction of the weekly Max quota:** the two student episodes are a rounding
@@ -34,9 +36,11 @@ The "~3.1 min/episode, 6 safe / 8 ceiling" rule was **sonnet-only and void** sin
 `1f0964a` flipped the student to `claude-opus-5`. No Opus episode had ever been
 timed. Timed exactly one before sizing any batch, per the brief:
 
-- **ep 1 = 233s (3.9 min), ep 2 = 196s (3.3 min) → ~3.6 min/episode on Opus 5.**
-- ~16% slower than sonnet. Revised rule for a 45-min run: **6 episodes safe,
+- **233s / 196s / 204s across the three episodes → ~3.5 min/episode on Opus 5**
+  (3.9 min for the very first, which pays the cold-start; ~3.3 thereafter).
+- ~13% slower than sonnet's 3.1. Revised rule for a 45-min run: **6 episodes safe,
   7 the ceiling** (setup ~8 min + wrap-up ~10 min leaves ~27 min of episode budget).
+- Practical note: size from **3.9 min** for the first episode, 3.4 for the rest.
 
 ## The curve
 
@@ -86,7 +90,61 @@ this rather than re-tuning the key: **the fallback if books-v1 is now too thin i
 re-recording with Playwright to restore genuinely discoverable truths, not moving
 the pass mark.**
 
-## Replication check
+## Replication check — the pass is repeatable, and that is the problem
 
-See the appended section below — a second, independent fresh student was run to
-distinguish a repeatable pass from a lucky one.
+One pass cannot distinguish a real capability from a lucky episode, so a second
+**independent fresh student** (`books-t4b`, clean state dir) was run against the
+same world. It did better:
+
+| Student | Episodes to pass | Final |
+|---|---|---|
+| `books-t4` | 2 | 1.0000 |
+| `books-t4b` | **1** | 1.0000 |
+
+2 of 2 students reached a perfect board; the second did it on its **first ever
+episode**, with no prior state to learn from. Burn for the replication: 39 turns,
+12,459 output tokens, 204s.
+
+### Why it is cheap — verified in source, not inferred
+
+`books-t4b`'s three submissions within that single episode:
+
+| # | Board | Score |
+|---|---|---|
+| 1 | amazon | 0.5000 |
+| 2 | amazon + barnesandnoble | 0.7500 |
+| 3 | amazon + barnesandnoble + christianbook | **1.0000** |
+
+It hill-climbed to a perfect board *inside one episode* by widening the board and
+watching the number rise. That is possible because **`submit_answer` returns the
+score and the category feedback to the student** — `src/exam/world-mcp.ts:85-94`
+runs the judge in-process and replies with `verdict.score` plus
+`verdict.categories` whenever the board is not yet passing. Confirmed by reading
+the handler, not assumed from the curve.
+
+So the exam currently pays out on a graded-feedback loop with
+`MAX_SUBMISSIONS: 3`. With **3 truths and 3 submissions**, one guess per truth is
+exactly enough to solve the board with no cross-episode learning at all. That is
+the mechanism behind both passes.
+
+### What this means for the test's purpose
+
+T4 asked "does it pass ≥0.9, and what strategy emerges?" The literal answer is
+**yes, in 1–2 episodes**, and the strategy that emerged is *in-episode hill
+climbing on judge feedback* — not the compounding across episodes the exam was
+built to detect. T2 and T3 both found no compounding; T4 does not overturn that,
+because it never needed to compound.
+
+**Recommendation (Patrick's call — nothing changed on disk):** the corrected key
+is correct, but it left the board narrow enough that the feedback loop trivialises
+it. Two independent levers, in order of preference:
+
+1. **Re-record books-v1 with Playwright** to restore genuinely discoverable
+   truths — the standing fallback, and the one that fixes depth rather than
+   masking it. Playwright produced the successful captures previously.
+2. **Reduce `MAX_SUBMISSIONS` to 1**, or withhold the numeric score from the
+   verdict. Either kills the in-episode search and forces the student to commit
+   a board on judgement. Cheap to try; a one-env-var change in `exam-cli.mjs`.
+
+Do **not** raise `passMark` — a perfect board already scores 1.0000, so there is
+nothing above it to move to.
