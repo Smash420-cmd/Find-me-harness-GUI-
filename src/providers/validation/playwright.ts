@@ -140,7 +140,10 @@ export class PlaywrightValidator implements IValidationProvider {
             return t.includes("add to cart") || t.includes("buy now") || t.includes("add to basket") || t === "buy";
           });
           const bodyText = document.body.innerText.toLowerCase();
-          const outOfStock = /\\b(sold\\s*out|out\\s*of\\s*stock|unavailable|notify\\s*me)\\b/.test(bodyText);
+          // "Can I buy it right now" is the question, so a future-dated promise counts
+          // as no. preorder/backorder were missing: they put a CPL DDR5 kit into ram-v1
+          // as a truth and a christianbook backorder into books-v1 (both 2026-08-07).
+          const outOfStock = /\\b(sold\\s*out|out\\s*of\\s*stock|unavailable|notify\\s*me|pre[-\\s]?order|back[-\\s]?order|coming\\s*soon)\\b/.test(bodyText);
           // A page we never actually got (bot-wall, error page) has no stock signal
           // either way. Report it so the caller doesn't read absence-of-"sold out"
           // as "in stock" — that lie certified two Cloudflare walls as buyable.
