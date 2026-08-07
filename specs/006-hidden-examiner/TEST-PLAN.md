@@ -120,7 +120,18 @@ first-run confirmation (noted in exam-cli.mjs) — the first session can adjust.
   all four open rulings answered. Pick a world/key fix before spending a window
   on T4.
 
-- [ ] **T5 — Re-record books-v1 and re-run T4 against a wider board.**
+- [ ] **T6 — Re-run RAM (exam #1) against the certified key.** `ram-v1` was
+  certified 2026-08-07 (all 83 proof shots opened, two truths demoted, re-signed).
+  Every prior RAM number predates that and was scored against an unreviewed key.
+  Exam #1 is the graduation gate (Spec 007 C8) and **has never been passed** — best
+  ever 0.6087 by `cc-01`, on a curve that got worse across 5 episodes. Run a fresh
+  student on Opus with the fixed recorder. Bars: ddr4-open show 31 of 34 zero traps,
+  ddr4-gskill 20 of 22, ddr5-6000 30 of 33.
+  **The question is not only "does it pass" but "does anything compound across
+  episodes"** — what T2/T3 failed to find and T4 never tested.
+  Blocks T5 (books re-record), which is deferred behind this.
+
+- [ ] **T5 — Re-record books-v1 (DEFERRED behind T6) and re-run T4 against a wider board.**
   T4's board was only three URLs wide, which is what made enumeration work, and
   on scale 4 the only possible scores are 1.0000 and 0.7500 — pass/fail with no
   curve. Widen `worlds/books-v1/urls.json` to **5–6 reachable NEW-hardcover
