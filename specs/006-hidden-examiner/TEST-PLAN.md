@@ -1,15 +1,22 @@
 # Autonomous weekly test plan (Relay)
 
-> **ALL TESTS COMPLETE as of 2026-08-07 — this recurrence can be cancelled.**
-> T1–T4 are ticked. T4 passed (1.0000, perfect board) on its second episode and
-> a replication student passed on its first. The open question is no longer
-> "can it pass" but "is books-v1 still hard enough to be worth asking" — see
-> `results/t4-deeper-run.md`, which recommends re-recording the world with
-> Playwright or cutting `MAX_SUBMISSIONS` before any further episodes are spent.
+> **T1–T4 ticked, but the plan is NOT finished — T5 is open.** Patrick ruled on
+> 2026-08-07 to re-record books-v1 rather than accept T4's pass. Keep the weekly
+> recurrence armed until T5 is ticked. T4 passed 1.0000, but by enumeration:
+> `submit_answer` returns the score on a miss, so with 3 truths and
+> `MAX_SUBMISSIONS: 3` a student adds one URL per attempt and reads off which
+> belonged. Two independent students did exactly that, one on its first ever
+> episode. See `results/t4-deeper-run.md`.
 
 One test per weekly Relay run (Wed 09:00 AEST), in order, until all are ticked.
 Each run: do the FIRST unchecked test, size it to one 5-hour Max window, record
 results, tick the box, commit, and write a short findings note. Then stop.
+
+Two guards landed 2026-08-07 (`6304aad`) and will shape any future run:
+`world-mcp` refuses to start when `MAX_SUBMISSIONS >= truths` (the enumeration
+threshold — building a board one confirmed URL at a time costs exactly `truths`
+submissions), and `recordingFetch` retries a 403 through the Playwright-rendered
+DOM so a browser-loadable page actually enters the search index.
 
 ## Execution model: the `claude` CLI is the student (on Max, free)
 
@@ -113,9 +120,28 @@ first-run confirmation (noted in exam-cli.mjs) — the first session can adjust.
   all four open rulings answered. Pick a world/key fix before spending a window
   on T4.
 
+- [ ] **T5 — Re-record books-v1 and re-run T4 against a wider board.**
+  T4's board was only three URLs wide, which is what made enumeration work, and
+  on scale 4 the only possible scores are 1.0000 and 0.7500 — pass/fail with no
+  curve. Widen `worlds/books-v1/urls.json` to **5–6 reachable NEW-hardcover
+  truths** (ISBN 9780735211292, hardcover verified per URL), re-record with
+  `scripts/record-urls.mjs`, review EVERY screenshot before ticking
+  `REVIEW-KEY.md`, re-sign the key, then re-run T4 into a new
+  `results/t4-rerun-<date>.md`.
+  **At least 4 truths is a hard floor** — `exam-cli.mjs` pins `MAX_SUBMISSIONS: 3`
+  and the new guard refuses to serve at or below that. AU sellers (Booktopia,
+  Dymocks, QBD, Angus & Robertson, Readings, Boffins) suit the AUD-flavoured
+  request and bot-wall far less than the US chains that 403'd.
+  **The question T5 answers:** with a board too wide to enumerate, does the
+  student still pass — and does anything compound across episodes, or does
+  T2/T3's no-compounding finding hold?
+  **Do not** lower `MAX_SUBMISSIONS` or move `passMark` instead; Patrick rejected
+  both cheap levers by name on 2026-08-07.
+
 Note: the SDK path (`scripts/exam.mjs`) remains available for a clean-science
 blank-slate run, but only with a dedicated metered `STUDENT_API_KEY` — never on
 Max. Default to the CLI path above.
+
 
 ## Log
 
@@ -128,3 +154,4 @@ Max. Default to the CLI path above.
 - 2026-08-05 · T4 · NOT RUN, BLOCKED — audited the books-v1 key instead of asking blind. **≥0.9 is arithmetically unreachable**: `judge.ts` with `missedTruth:1` and 5 truths caps a student who can only discover 3 at `1-2/6` = **0.6667 — exactly T3's best, so T3 measured the world's ceiling, not the student's.** Opened 11 of 13 key screenshots (the key was signed 2026-07-04 with every checkbox unticked): **only Amazon is a clean truth** (Hardcover/Buy New/In Stock). booksamillion + thirdplacebooks = Cloudflare bot-walls (403, zero body → not in the search index); **barnesandnoble = a B&N "Something went wrong" error page**; christianbook = a past-due backorder ("ship on or about 07/22/26"). All 4 open rulings answered on evidence: HPB/ThriftBooks moot (bot-wall + 406, never captured), jamesclear confirmed category-page, B&N unanswerable from its proof, mcnallyrobinson right category/wrong reason. **Root cause is T1's bug on a second world**: both bot-walls recorded `_addToCart:false, _outOfStock:false` — a Cloudflare interstitial certifies as in-stock. Burn: 0 episodes, $0 metered, ~26 min. Recommendation (Patrick's call, nothing changed on disk): reclassify the two bot-walls as traps → T3's ep-8 board scores 1.0000; or re-record via Playwright. See `results/t4-blocked-key-audit.md`.
 - 2026-08-07 · T4 · **DONE — FIRST PASS IN THE HISTORY OF THIS EXAM: 1.0000, a perfect board, on episode 2** (curve 0.75 → 1.0000), against the re-signed key (`certifiedAt 2026-08-07`, 3 truths / 10 traps, verified before launch). Winning board = exactly amazon + barnesandnoble + christianbook, zero traps, checked by hand against `key.json`. **But it passed too cheaply to mean what T4 asked**: a second independent fresh student passed on its *first ever* episode, walking 0.5 → 0.75 → 1.0 within that single episode — because `submit_answer` returns the score and category feedback (`world-mcp.ts:85-94`), so with **3 truths and `MAX_SUBMISSIONS: 3`** one guess per truth solves the board with **zero cross-episode learning**. The emergent strategy is in-episode hill climbing on judge feedback, not the compounding T2/T3 failed to find — T4 doesn't overturn them, it never needed to compound. Fix is depth, not the pass mark (already maxed): re-record with Playwright, or cut `MAX_SUBMISSIONS`/withhold the numeric score. **First-ever Opus timing: ~3.5 min/episode** (3.9 cold, ~3.3 after) — the sonnet "6 safe / 8 ceiling" rule becomes **6 safe / 7 ceiling**. Burn: 3 episodes, 112 turns, 38.9K output, 3.64M cache read, 10.6 min model time ≈ **$12.60 API-equiv, $0 metered**, ~25 of the 45 min cap; weekly Max quota impact negligible — wall clock remains the only real constraint. **Not comparable to T1–T3** (3 truths not 5, scale 4 not 6, Opus not sonnet) — a fresh curve.
 - 2026-07-29 · T1 · DONE — 83 screenshots, one `claude -p` each. **Vision is right and the recorded DOM truth is wrong**: raw agreement price 58/81, addToCart 64/83, inStock 71/83, pageType 79/83 — but on 8 PNGs opened by hand across all 6 disagreement classes, vision matched the pixels 8/8 and the capture field never did. Root cause `playwright.ts:132-152`: `_visiblePrice` = first `$N` in whole-DOM innerText (13/14 Scorptec captures read "250"; real prices 319–789) or the struck-through RRP (5/5 Centrecom), `_outOfStock` regex hits filter labels and one sold-out store row (8 of 10 recorded OOS are false), `_addToCart` matches any DOM button while the shot is a 1280×720 crop. **Worst: a 404 and an eBay error page both recorded `_outOfStock:false` → certify as in-stock.** Burn: 18.9K output / 12 min / ≈$2.00 API-equiv, $0 metered — the cheapest test yet.
+- 2026-08-07 (pm) · post-T4 · **Two guards committed (`6304aad`) and T5 opened.** T4's pass was enumeration, not capability: `submit_answer` returns the score on a miss, so at 3 truths / `MAX_SUBMISSIONS: 3` a student adds one URL per attempt and reads off which belonged (`students/books-t4b/submissions.jsonl`, 0.5 → 0.75 → 1.0 in one episode). (1) `world-mcp` now refuses to start when `MAX_SUBMISSIONS >= truths` — building a board one confirmed URL at a time costs exactly `truths` submissions, so that is the threshold; single-truth exams exempt. (2) `recordingFetch` retries a failed HTTP fetch through the Playwright-rendered DOM, because `worldIndex` skips bodyless records and plain HTTP is exactly what Cloudflare 403s — the root cause of the two undiscoverable "truths" in the original key; a wall still records as the error, never a body. `record-urls.mjs` warns by name when a truth ends up bodyless. Patrick ruled re-record over the cheap levers; the weekly recurrence stays armed for T5. 92 tests pass.
