@@ -61,8 +61,8 @@ export function interpretUmartFields(
   // every capture — they work on ANY retailer without a per-site classifier.
   const availability: RamLiveState["availability"] = fields.availabilityHref
     ? availabilityFromHref(fields.availabilityHref)
-    : fields["_outOfStock"] === "true"
-      ? "out_of_stock"
+    : fields["_outOfStock"] === "true" || fields["_outOfStock"] === "unknown"
+      ? "out_of_stock" // "unknown" = bot-wall/error page. Fail closed: never sell what we couldn't read.
       : "in_stock"; // optimistic: add-to-cart or no clear signal — trust the proof-shot
 
   return {

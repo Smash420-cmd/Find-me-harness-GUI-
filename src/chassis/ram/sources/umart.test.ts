@@ -76,4 +76,20 @@ describe("Task 8 — UmartSource (injected fetch)", () => {
     expect(caption).toContain("$619"); // the render price
     expect(caption).not.toContain("999"); // never the stale observe-time price
   });
+
+  // The bug that certified two Cloudflare walls as buyable truths in books-v1:
+  // the recorder collapsed "we never saw the page" into _outOfStock:false, and
+  // the optimistic branch read that as in stock.
+  it("a bot-wall capture (_outOfStock:unknown) is never read as in stock", () => {
+    const candidate: Candidate<RamCandidateData> = {
+      key: "92533",
+      source: "umart",
+      data: { productId: "92533", title: "Corsair 32GB", url: "https://umart/92533", attributes: { generation: "DDR5", capacityGb: 32, dataRateMtps: 6000 }, priceAud: 619 },
+    };
+    const walled = interpretUmartFields({ _outOfStock: "unknown", _addToCart: "false" }, candidate);
+    expect(walled.availability).toBe("out_of_stock");
+    // a page that really rendered and showed no sold-out signal still passes
+    const seen = interpretUmartFields({ _outOfStock: "false", _addToCart: "true" }, candidate);
+    expect(seen.availability).toBe("in_stock");
+  });
 });

@@ -289,6 +289,7 @@ export function createHarnessServer(opts: HarnessServerOptions = {}): Server {
         const capture = await validator.capture({ url: c.data.url, mustShow: title ?? retailer, extract: {} });
         const oos = capture.fields["_outOfStock"] === "true";
         const addToCart = capture.fields["_addToCart"] === "true";
+        if (capture.fields["_outOfStock"] === "unknown") { log(`[scan] drop (bot-wall / error page — never saw the product): ${retailer}`); return; }
         if (oos && !addToCart) { log(`[scan] drop (render shows sold out / notify me): ${retailer}`); return; }
         renderConfirmed = addToCart;
         const png = await readFile(capture.proof.artifactRef).catch(() => Buffer.from(""));
@@ -504,6 +505,7 @@ export function createHarnessServer(opts: HarnessServerOptions = {}): Server {
           const capture = await validator.capture({ url, mustShow: body.title, extract: {} });
           const oos = capture.fields["_outOfStock"] === "true";
           const addToCart = capture.fields["_addToCart"] === "true";
+          if (capture.fields["_outOfStock"] === "unknown") { log(`[bestprice] drop (bot-wall / error page — never saw the product): ${hostname}`); continue; }
           if (oos && !addToCart) { log(`[bestprice] drop (render shows sold out / notify me): ${hostname}`); continue; }
           renderConfirmed = addToCart;
           const png = await readFile(capture.proof.artifactRef).catch(() => Buffer.from(""));

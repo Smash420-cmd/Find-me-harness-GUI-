@@ -65,7 +65,8 @@ for (const [i, c] of cases.entries()) {
   let ans = null; try { ans = JSON.parse(text.match(/\{[\s\S]*\}/)?.[0] ?? ""); } catch { /* unparseable */ }
 
   const truth = {
-    inStock: c.meta.fields._outOfStock !== "true",
+    // "unknown" (bot-wall/error page) is not a claim — only an explicit "false" means in stock.
+    inStock: c.meta.fields._outOfStock === "false",
     addToCart: c.meta.fields._addToCart === "true",
     price: num(c.meta.fields._visiblePrice),
     // every recorded capture is a single-product detail page (recorder only visits PDPs)

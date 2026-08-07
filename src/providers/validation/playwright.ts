@@ -98,7 +98,7 @@ export class PlaywrightValidator implements IValidationProvider {
         }
       });
 
-      await page.goto(target.url, { waitUntil: "domcontentloaded", timeout: this.navTimeoutMs });
+      const resp = await page.goto(target.url, { waitUntil: "domcontentloaded", timeout: this.navTimeoutMs });
       // Don't rush the shot. Three gates, all capped so nothing hangs forever:
       // 1. network quiet (JS-rendered prices), 2. every VISIBLE image fully
       // decoded (lazy loaders and slow CDNs beat networkidle), 3. paint settle.
@@ -141,14 +141,21 @@ export class PlaywrightValidator implements IValidationProvider {
           });
           const bodyText = document.body.innerText.toLowerCase();
           const outOfStock = /\\b(sold\\s*out|out\\s*of\\s*stock|unavailable|notify\\s*me)\\b/.test(bodyText);
+          // A page we never actually got (bot-wall, error page) has no stock signal
+          // either way. Report it so the caller doesn't read absence-of-"sold out"
+          // as "in stock" — that lie certified two Cloudflare walls as buyable.
+          const botWall = /just a moment|checking your browser|checking if the site connection is secure|verify you are human|enable javascript and cookies|attention required|access denied|something went wrong/.test(bodyText);
           // First POSITIVE price — header cart widgets put "$0.00" first on many stores.
           const price = (bodyText.match(/\\$\\s*\\d[\\d,]*\\.?\\d*/g) || [])
             .map(s => s.replace(/[^\\d.]/g, ""))
             .find(v => parseFloat(v) > 0) || null;
-          return { addToCart, outOfStock, price };
-        })()`) as { addToCart: boolean; outOfStock: boolean; price: string | null };
+          return { addToCart, outOfStock, price, botWall };
+        })()`) as { addToCart: boolean; outOfStock: boolean; price: string | null; botWall: boolean };
+        const readable = (resp?.ok() ?? false) && !u.botWall;
         fields["_addToCart"] = u.addToCart ? "true" : "false";
-        fields["_outOfStock"] = u.outOfStock ? "true" : "false";
+        // Tri-state. "false" means the page rendered and showed no sold-out signal;
+        // "unknown" means we never saw the real page, so no claim either way.
+        fields["_outOfStock"] = u.outOfStock ? "true" : readable ? "false" : "unknown";
         if (u.price) fields["_visiblePrice"] = u.price;
       } catch {
         // non-fatal — structured signals take precedence anyway
