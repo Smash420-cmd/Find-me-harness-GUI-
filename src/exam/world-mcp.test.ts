@@ -89,4 +89,43 @@ describe("world MCP server (offline JSON-RPC)", () => {
     ]);
     expect(res.get(2).result.content[0].text).toContain("Not passed");
   });
+
+  // T4 (2026-08-07): a failed submission hands back the score, so with as many
+  // submissions as truths a student adds one URL per attempt and reads off which
+  // belonged — a perfect board with no domain knowledge. Two students did exactly
+  // that. The server must refuse the config instead of grading the walkthrough.
+  it("refuses to serve when MAX_SUBMISSIONS >= truths (the board would be enumerable)", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "mcpw-enum-"));
+    mkdirSync(join(dir, "fetch"), { recursive: true });
+    writeFileSync(join(dir, "key.json"), JSON.stringify({
+      certifiedBy: "test", certifiedAt: "2026-08-07", passMark: 0.9,
+      weights: { missedTruth: 1, ghostShown: 3, wrongShown: 3, irrelevantShown: 5, unknownShown: 2 },
+      exams: [{ id: "t", request: "find widgets", traps: [], truths: [
+        { url: "https://a.shop/1", title: "One", priceAud: 1 },
+        { url: "https://a.shop/2", title: "Two", priceAud: 2 },
+      ] }],
+    }));
+
+    const run = (maxSubmissions: string): Promise<{ code: number | null; err: string }> =>
+      new Promise((resolve) => {
+        const srv = spawn(process.execPath, ["dist/exam/world-mcp.js"], {
+          env: { ...process.env, WORLD_DIR: dir, STUDENT_WORKSPACE: dir, KEY_PATH: join(dir, "key.json"), EXAM_ID: "t", MAX_SUBMISSIONS: maxSubmissions },
+          stdio: ["pipe", "ignore", "pipe"],
+        });
+        let err = "";
+        srv.stderr.setEncoding("utf8");
+        srv.stderr.on("data", (c: string) => { err += c; });
+        // Nothing is written to stdin, so a healthy server just idles — kill it and
+        // read the exit as "did not refuse".
+        const t = setTimeout(() => srv.kill(), 3000);
+        srv.on("exit", (code) => { clearTimeout(t); resolve({ code, err }); });
+      });
+
+    const blocked = await run("2"); // 2 submissions, 2 truths → enumerable
+    expect(blocked.err).toContain("enumeration");
+    expect(blocked.code).not.toBe(0);
+
+    const allowed = await run("1"); // 1 submission, 2 truths → must commit on judgement
+    expect(allowed.err).not.toContain("enumeration");
+  }, 15_000);
 });

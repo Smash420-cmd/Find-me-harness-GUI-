@@ -18,14 +18,39 @@ if (!worldDir) { console.error("usage: node scripts/record-urls.mjs <worldDir>")
 const spec = JSON.parse(readFileSync(join(worldDir, "urls.json"), "utf8"));
 mkdirSync(join(worldDir, "capture"), { recursive: true });
 
-const doFetch = recordingFetch(worldDir);
-const validator = new RecordingValidator(new PlaywrightValidator({ artifactDir: join(worldDir, "capture") }), worldDir);
+const inner = new PlaywrightValidator({ artifactDir: join(worldDir, "capture") });
+// Plain HTTP is what Cloudflare blocks, and the fetch BODY is what feeds the
+// world's search index — a 403 makes the page undiscoverable even though its
+// screenshot exists. Fall back to the rendered DOM so a page a browser can load
+// is a page the student can find. A wall still records as the error.
+const doFetch = recordingFetch(worldDir, undefined, async (url) => {
+  const [html] = await inner.browse(url, "[document.documentElement.outerHTML]");
+  return html ?? "";
+});
+const validator = new RecordingValidator(inner, worldDir);
 
+const unreachable = [];
 for (const item of spec.items) {
   const outcomes = [];
-  try { await doFetch(item.url); outcomes.push("fetch ok"); } catch (e) { outcomes.push(`fetch: ${String(e.message ?? e).slice(0, 50)}`); }
+  try {
+    await doFetch(item.url);
+    outcomes.push("fetch ok");
+  } catch (e) {
+    outcomes.push(`fetch: ${String(e.message ?? e).slice(0, 50)}`);
+    unreachable.push(item);
+  }
   try { await validator.capture({ url: item.url, mustShow: "" }); outcomes.push("shot ok"); } catch (e) { outcomes.push(`shot: ${String(e.message ?? e).slice(0, 50)}`); }
   console.log(`[rec] ${(item.role ?? "?").padEnd(20)} ${outcomes.join(" · ")}  ${item.url}`);
+}
+
+// A bodyless TRUTH is the books-v1 failure: signed as findable, invisible to
+// search, and it silently caps every score. Say so loudly here rather than
+// discovering it three tests later.
+const blindTruths = unreachable.filter((i) => (i.role ?? "") === "truth");
+if (blindTruths.length) {
+  console.error(`\n[rec] WARNING — ${blindTruths.length} truth(s) have NO body and will NOT appear in search:`);
+  for (const i of blindTruths) console.error(`[rec]   ${i.url}`);
+  console.error(`[rec] No student can discover these. Replace them with reachable sellers or demote them to bot-wall traps BEFORE signing the key.`);
 }
 
 const manifest = { name: spec.name ?? worldDir, recordedAt: new Date().toISOString(), request: spec.request, items: spec.items };

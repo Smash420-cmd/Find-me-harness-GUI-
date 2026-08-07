@@ -165,7 +165,23 @@ export async function main(): Promise<void> {
   const maxSubmissions = Number(process.env.MAX_SUBMISSIONS ?? "3");
   const submissionsLog = process.env.SUBMISSIONS_LOG;
   const episode = process.env.EPISODE ? Number(process.env.EPISODE) : undefined;
-  log(`serving world=${worldDir} exam=${examId} (key by ${key.certifiedBy})`);
+
+  // T4, 2026-08-07: a failed submit_answer hands back the score, so a student can
+  // add one URL per attempt and read off whether it belonged. With submissions >=
+  // truths that solves the board by enumeration, with no domain knowledge and no
+  // learning — two independent students hit 1.0000 that way, one on its first ever
+  // episode. Refuse the config rather than grade a walkthrough.
+  // Building the board one confirmed URL at a time costs exactly `truths`
+  // submissions, so `>=` is the enumeration threshold. A single-truth exam is
+  // exempt: there is no sequence to walk, you either found the page or you didn't.
+  const truths = key.exams.find((e) => e.id === examId)?.truths.length ?? 0;
+  if (truths > 1 && maxSubmissions >= truths) {
+    throw new Error(
+      `MAX_SUBMISSIONS (${maxSubmissions}) >= truths (${truths}) for exam '${examId}': the board is solvable by enumeration on judge feedback. Lower MAX_SUBMISSIONS below ${truths}, or widen the truth set.`,
+    );
+  }
+
+  log(`serving world=${worldDir} exam=${examId} (key by ${key.certifiedBy}, ${truths} truths, ${maxSubmissions} submissions)`);
   await runWorldMcpServer(buildWorldTools({ worldDir, workspace, key, examId, maxSubmissions, ...(submissionsLog ? { submissionsLog } : {}), ...(episode ? { episode } : {}) }));
 }
 

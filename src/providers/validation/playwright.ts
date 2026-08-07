@@ -15,7 +15,7 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { VerificationTier } from "../../types/index.js";
 import type { CaptureResult, ExtractSpec, IValidationProvider } from "../index.js";
-import { USER_AGENT } from "../net.js";
+import { BOT_WALL_RE, USER_AGENT } from "../net.js";
 
 export interface PlaywrightValidatorOptions {
   /** Path to a chromium binary; defaults to the env's pre-installed browser. */
@@ -144,7 +144,7 @@ export class PlaywrightValidator implements IValidationProvider {
           // A page we never actually got (bot-wall, error page) has no stock signal
           // either way. Report it so the caller doesn't read absence-of-"sold out"
           // as "in stock" — that lie certified two Cloudflare walls as buyable.
-          const botWall = /just a moment|checking your browser|checking if the site connection is secure|verify you are human|enable javascript and cookies|attention required|access denied|something went wrong/.test(bodyText);
+          const botWall = /${BOT_WALL_RE.source}/i.test(bodyText);
           // First POSITIVE price — header cart widgets put "$0.00" first on many stores.
           const price = (bodyText.match(/\\$\\s*\\d[\\d,]*\\.?\\d*/g) || [])
             .map(s => s.replace(/[^\\d.]/g, ""))

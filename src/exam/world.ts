@@ -19,7 +19,7 @@ import { createHash } from "node:crypto";
 import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { CaptureResult, ExtractSpec, RenderProvider } from "../providers/index.js";
-import { liveFetchText, setFetchTextImpl } from "../providers/net.js";
+import { liveFetchText, looksLikeBotWall, setFetchTextImpl } from "../providers/net.js";
 
 export type WorldMode = "record" | "replay";
 export type FetchFn = (url: string, init?: RequestInit) => Promise<string>;
@@ -31,7 +31,13 @@ const writeJson = (p: string, o: unknown) => writeFileSync(p, JSON.stringify(o, 
 
 // ── fetch ─────────────────────────────────────────────────────────────────
 
-export function recordingFetch(dir: string, base: FetchFn = liveFetchText): FetchFn {
+/** `renderFallback` exists because plain HTTP is what Cloudflare blocks, and the
+ * fetch body is what feeds the world's search index (`student.ts:worldIndex`
+ * skips bodyless records). A 403'd page therefore became unreachable-unless-you-
+ * already-know-the-URL, which is how two undiscoverable "truths" got signed into
+ * books-v1. If a real browser can load the page, index what the browser saw.
+ * A wall is still recorded as the error — never as a body. */
+export function recordingFetch(dir: string, base: FetchFn = liveFetchText, renderFallback?: (url: string) => Promise<string>): FetchFn {
   mkdirSync(join(dir, "fetch"), { recursive: true });
   return async (url, init) => {
     const p = join(dir, "fetch", `${sha(url)}.json`);
@@ -40,7 +46,15 @@ export function recordingFetch(dir: string, base: FetchFn = liveFetchText): Fetc
       writeJson(p, { url, body });
       return body;
     } catch (e) {
-      writeJson(p, { url, error: String(e instanceof Error ? e.message : e) });
+      const msg = String(e instanceof Error ? e.message : e);
+      if (renderFallback) {
+        const rendered = await renderFallback(url).catch(() => "");
+        if (rendered && !looksLikeBotWall(rendered)) {
+          writeJson(p, { url, body: rendered, via: "render" });
+          return rendered;
+        }
+      }
+      writeJson(p, { url, error: msg });
       throw e;
     }
   };

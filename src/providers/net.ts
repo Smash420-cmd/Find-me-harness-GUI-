@@ -31,3 +31,15 @@ export function setFetchTextImpl(next?: typeof liveFetchText): void {
 }
 
 export const USER_AGENT = DEFAULT_UA;
+
+/** An interstitial we got instead of the page we asked for. One source of truth:
+ * PlaywrightValidator interpolates `.source` into its in-page evaluate string, so
+ * the browser and Node agree on what counts as a wall. */
+export const BOT_WALL_RE =
+  /just a moment|checking your browser|checking if the site connection is secure|verify you are human|enable javascript and cookies|attention required|access denied|something went wrong/i;
+
+/** True when `html` is a wall rather than content. Length gate first — a real
+ * product page is never this small. */
+export function looksLikeBotWall(html: string): boolean {
+  return html.length < 4096 || BOT_WALL_RE.test(html.slice(0, 20_000));
+}
