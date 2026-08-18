@@ -69,7 +69,7 @@ for (let i = state.episodes; i < maxEpisodes; i++) {
     "--mcp-config", mcpConfig, "--strict-mcp-config",
     "--tools", "", // no built-ins: the world server is the whole universe
     "--allowedTools", allowed,
-    "--max-turns", "35",
+    "--max-turns", arg("max-turns", "35"),
     "--dangerously-skip-permissions",
     "--output-format", "stream-json", "--verbose",
   ];

@@ -166,3 +166,101 @@ The obvious next step is **n**, not a new test: run 4–6 more fresh single-epis
 students on `ddr4-gskill` and report a pass *rate*. Each costs ~3–5 min, and the
 runner exits on pass, so a batch is cheap. One pass in two tells you almost nothing;
 six tells you whether the protocol graduated or got lucky.
+
+---
+
+# T6b — 2026-08-19: the pass rate was measuring a turn cap, not the student
+
+**Students:** `ram-t6-03`, `ram-t6-04` (default cap), `ram-t6-05` (raised cap) · **Model:** `claude-opus-5`
+**Exam:** `ddr4-gskill`, same certified key (`2026-08-07`, re-verified: 34/22/33).
+
+This run set out to buy `n` — turn last week's 1-pass-in-2 into a pass *rate*. It
+found something that invalidates the question as posed.
+
+## The finding: `--max-turns 35` truncates students mid-work
+
+`scripts/exam-cli.mjs:72` hard-coded `--max-turns 35`. Result subtypes across all
+five students on this board:
+
+| student | cap | result subtype | tool calls | submissions | score |
+|---|---|---|---|---|---|
+| `ram-t6-01` | 35 | `success` | 64 | 1 | **0.9565 PASS** |
+| `ram-t6-02` | 35 | `error_max_turns` | 97 | 1 | 0.4783 |
+| `ram-t6-03` | 35 | `error_max_turns` | 109 | **0** | 0 |
+| `ram-t6-04` | 35 | `error_max_turns` | 82 | **0** | 0 |
+| `ram-t6-05` | **120** | `success` | 167 | 2 | **0.9130 PASS** |
+
+**Three of the four students at the shipped default never submitted at all** — they
+were killed mid-verification. Checked directly: `ram-t6-03`'s last calls were
+`write_file parse10.mjs` → `run_script parse10.mjs` (its 10th parser, still parsing
+Scorptec/Bunnings HTML); `ram-t6-04` was writing `amz.mjs`. Neither was looping or
+stuck. They were working.
+
+**The student that passed at the default was the one that did the least work** — 64
+tool calls, the lowest of all five. The cap does not select for correctness; it
+selects for brevity.
+
+So "1 pass in 2" from last week, and "1 pass in 4" this week, are **not pass rates**.
+They are the rate at which a student happens to finish under a budget most students
+exceed.
+
+## The control: given room, the student finds everything
+
+`ram-t6-05`, identical except `--max-turns 120`:
+
+- submission 1: 18/22 truths, 2 unkeyed → 0.6522
+- submission 2: **22 of 22 truths, zero traps** → **0.9130 PASS**
+
+`1 − 2/23 = 0.913`; the only penalty left is a single unkeyed URL (below). It found
+**every truth on the board** — including the JB Hi-Fi `?variant=` URL that
+`ram-t6-01` missed.
+
+Between the two submissions it dropped the unkeyed `amazon.com.au` URL and added
+four truths. That is legitimate refinement on judge feedback, **not T4's
+enumeration** — with 22 truths and `MAX_SUBMISSIONS: 3` a board cannot be read off,
+and the guard (`world-mcp.ts:180`) has ample margin.
+
+## The unkeyed-URL flag is now costing real points
+
+Last week I flagged that `bunnings.com.au` and `amazon.com.au` are reachable but
+**neither truth nor trap**, so `judge.ts` falls through to `unknownShown: 2`. On a
+board where the student now finds 22/22 truths, that gap is the *entire* remaining
+penalty: a perfect truth sweep scores 0.913 instead of 1.0 because of one unkeyed
+Bunnings page.
+
+Still unruled, and I still have not opened either screenshot — verified only that
+both are unkeyed and cost 2 points each.
+
+## What changed in the repo
+
+`scripts/exam-cli.mjs` — `--max-turns` is now a CLI arg, **default unchanged at 35**:
+
+```js
+"--max-turns", arg("max-turns", "35"),
+```
+
+Nothing else moved. `passMark`, weights and `MAX_SUBMISSIONS` untouched, per the
+brief's flag-don't-fix rule. **I did not change the default** — whether 35 is the
+intended budget is Patrick's call, and every historical number was measured under it.
+
+## Consequences for every prior RAM number
+
+T2's `cc-01` curve (0.6087 → 0.5652 → 0.5652 → 0.3913 → 0.5652, "a curve that got
+*worse*") was measured under this same cap. **Those episodes may have been truncated
+too** — a declining curve is exactly what you would see if longer, more thorough
+attempts got cut off. That reading is unverified: I did not re-open `cc-01`'s streams
+for `error_max_turns`. It is a 2-minute check and the next run should do it before
+anyone cites the no-learning finding again.
+
+## Burn
+
+3 episodes this run: 275 s + 214 s + 521 s = **1010 s (16.8 min)**, 79.5K output
+tokens, ~15.8M cache read, **$0 metered** (≈ $19 API-equiv). Cumulative T6: 5
+students, 8.6 min of model time beyond that. Wall clock remains the only constraint.
+
+## Next
+
+1. **Replicate the raised-cap control** — `ram-t6-05` is n=1. Run 3–4 more at
+   `--max-turns 120` for a real pass rate. ~8.7 min each; budget 2 per 45-min run.
+2. **Grep the T2 streams for `error_max_turns`** before citing that curve again.
+3. Rule on the unkeyed URLs and on whether 35 was ever the intended budget.
