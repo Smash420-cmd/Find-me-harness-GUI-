@@ -291,3 +291,28 @@ Read only the three clean episodes: **0.6087 → 0.5652 → 0.5652.** So:
   weaker claim than a decline, and it rests on n=3.
 
 This does not overturn T2's conclusion. It removes the most dramatic evidence for it.
+
+## Replication attempt `ram-t6-06` — partial, and the unkeyed URL is now decisive
+
+Killed at 600 s by **my own Bash tool timeout, not by the harness or the turn cap**
+— it was still working, with 2 of its 3 submissions unused. One submission banked:
+
+**21 of 22 truths, zero traps, one unkeyed URL → 0.8696.**
+
+`1 − 3/23`, where the 3 is 1 missed truth + **2 for the unkeyed Bunnings page**.
+
+That single unkeyed URL is the whole difference between failing and passing:
+without it the same board scores `1 − 1/23` = **0.9565, a pass.**
+
+Both raised-cap students independently submitted the Bunnings URL (`ram-t6-05` in
+submission 1, `ram-t6-06` in its only one). It is not one student's misjudgement —
+the world surfaces it and students repeatedly conclude it belongs. It is keyed as
+neither truth nor trap, so it silently costs 2 under `unknownShown`.
+
+**This escalates the unkeyed-URL flag from "costs points" to "decides pass/fail".**
+
+Raised-cap tally so far: `ram-t6-05` **0.9130 PASS** (22/22 truths), `ram-t6-06`
+0.8696 on a truncated-by-tooling run (21/22). Neither missed on capability; both were
+limited by the key's coverage or by a clock. **Still n=2 — replicate before quoting
+a rate.** Next run: 2 students at `--max-turns 120`, and give each a >10-minute
+timeout (these take 520–600 s+).
