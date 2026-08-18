@@ -264,3 +264,30 @@ students, 8.6 min of model time beyond that. Wall clock remains the only constra
    `--max-turns 120` for a real pass rate. ~8.7 min each; budget 2 per 45-min run.
 2. **Grep the T2 streams for `error_max_turns`** before citing that curve again.
 3. Rule on the unkeyed URLs and on whether 35 was ever the intended budget.
+
+## Follow-up, same run: T2's "curve got worse" is partly a truncation artifact
+
+I ran the 2-minute check recommended above rather than leaving it for next week.
+`students/cc-01` (T2, sonnet, the project's canonical no-learning result):
+
+| episode | result subtype | tool calls | score |
+|---|---|---|---|
+| 1 | `success` | 57 | 0.6087 |
+| 2 | **`error_max_turns`** | 69 | 0.5652 |
+| 3 | `success` | 62 | 0.5652 |
+| 4 | **`error_max_turns`** | 52 | **0.3913** |
+| 5 | `success` | 38 | 0.5652 |
+
+**Two of the five episodes were truncated, and one of them is the 0.3913 dip** that
+has been cited as evidence the student got *worse* over time. It did not get worse
+in episode 4; it got cut off.
+
+Read only the three clean episodes: **0.6087 → 0.5652 → 0.5652.** So:
+
+- **"The curve got worse" is dead.** That framing rested on a truncated point and
+  should stop being repeated (it is in the brief, the TEST-PLAN Log, and NOTES).
+- **"No compounding" survives, weakened.** Three uncontaminated episodes show flat,
+  slightly-down, and no improvement. That is still no learning — but it is a much
+  weaker claim than a decline, and it rests on n=3.
+
+This does not overturn T2's conclusion. It removes the most dramatic evidence for it.
