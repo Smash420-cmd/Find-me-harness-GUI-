@@ -393,6 +393,37 @@ it lists, and these pages have none.
 `trending/32gb-ddr4-ram` category page has content. So the mwave URL `ram-t6-07`
 submitted is both unkeyed *and* bodyless.
 
+## Amazon resolved: it is un-adjudicable, and that is a recording defect
+
+I said above that Amazon's stock state "could not be determined". Ran that to
+ground rather than leaving it hanging. In the full 1,079,917-byte recorded body:
+
+| marker | present? |
+|---|---|
+| `in stock` (any case) | **no** |
+| `Currently unavailable` | **no** |
+| `id="add-to-cart-button"` | **no** |
+| `id="buy-now-button"` | **no** |
+| `outOfStock` | **no** |
+
+The `availability_feature_div` exists but is **empty** — its next sibling is the
+following feature div. Amazon renders its buybox client-side and `recordingFetch`
+captured the pre-JS HTML, so the entire availability region is missing.
+
+So this is not "I could not find it". **It is not there for anyone** — no student
+can determine buyability from this page either, and no reviewer could certify it.
+
+That splits the three unkeyed product pages cleanly:
+
+- **Bunnings — adjudicable and matching.** Its body carries the price and
+  `Add to Cart`. It should be keyed, and on the request's literal terms it looks
+  like a truth.
+- **Scorptec 78085 — adjudicable** (normal recorded product page, same retailer as
+  three keyed truths). Should be keyed.
+- **Amazon B07Z86BMCQ — NOT adjudicable from this recording.** Keying it either way
+  would be a guess. It needs re-recording through the Playwright-rendered DOM (the
+  path `recordingFetch` already uses for 403s) before anyone can rule on it.
+
 ## What this means for the ruling
 
 The unkeyed URLs are no longer a scoring curiosity. They are:
