@@ -316,3 +316,103 @@ Raised-cap tally so far: `ram-t6-05` **0.9130 PASS** (22/22 truths), `ram-t6-06`
 limited by the key's coverage or by a clock. **Still n=2 — replicate before quoting
 a rate.** Next run: 2 students at `--max-turns 120`, and give each a >10-minute
 timeout (these take 520–600 s+).
+
+---
+
+# T6c — 2026-08-26: at a workable cap, everyone who finished passed
+
+**Students:** `ram-t6-07`, `ram-t6-08` · `--max-turns 120` · `claude-opus-5` ·
+key re-verified `certifiedAt: 2026-08-07`, 34/22/33.
+
+## Raised-cap tally (all four students to date)
+
+| student | outcome | truths | traps | unkeyed | score |
+|---|---|---|---|---|---|
+| `ram-t6-05` | finished | 22/22 | 0 | 1 | **0.9130 PASS** |
+| `ram-t6-06` | killed by my 600 s Bash timeout | 21/22 | 0 | 1 | 0.8696 |
+| `ram-t6-07` | finished | 21/22 | 0 | 0 | **0.9565 PASS** |
+| `ram-t6-08` | killed by my 600 s Bash timeout | 21/22 | 0 | 1 | 0.8696 |
+
+**Both students that were allowed to finish passed. 2 of 2.** The two that did not
+were killed by *my Bash tool's 10-minute ceiling* — not the harness, not the turn
+cap, not the exam — each with 2 of its 3 submissions still unused.
+
+Both truncated students sat at 0.8696, and in both cases **the sole penalty was the
+unkeyed Bunnings URL**. Whether they would have recovered is not something I can
+claim: they were never allowed to try. `ram-t6-07` shows the recovery path exists.
+
+Note the tooling bias: a 600 s ceiling **systematically under-reports** the pass
+rate, because a student is killed at whatever it has banked so far.
+
+## `ram-t6-07`: the winning move is to delete correct-looking answers
+
+| submission | shown | truths | unkeyed | score |
+|---|---|---|---|---|
+| 1 | 18 | 18/22 | 0 | 0.8261 |
+| 2 | 24 | **21/22** | **3** | **0.6957** — more truths, worse score |
+| 3 | 21 | 21/22 | 0 | **0.9565 PASS** |
+
+Submission 2 found three *more* truths than submission 1 and scored *lower*, because
+it added three unkeyed URLs (mwave, amazon.com.au, bunnings) at minus 2 each.
+Submission 3 passed by **deleting them again**.
+
+So the strategy the exam actually rewards is: propose, get punished for pages that
+match the request, then remove them until the number goes up. That is judge-gaming,
+not finding RAM. It is the same shape as T4's enumeration, one level up — and unlike
+T4 it is not blocked by the `MAX_SUBMISSIONS` guard, because it needs only 3 tries.
+
+## The key omits genuine product pages — now with evidence
+
+Last week I flagged this without opening anything. This week I read the recorded
+bodies. Of 10 reachable-but-unkeyed pages whose titles match G.Skill 32 GB, seven are
+search-engine result pages (bing, duckduckgo, staticice) — fine to leave unkeyed,
+though arguably they should be explicit traps. **Three are real product pages:**
+
+- **`bunnings.com.au/...f4-3200c16d-32gtzr`** — title `G.Skill Trident Z RGB
+  32GB(2x 16GB) DDR4-3200 Memory [F4-3200C16D-32GTZR] - Bunnings Australia`, body
+  reads `Marketplace | Online only` then the price and `Add to Cart`. **This is
+  exactly what the request asks for**: G.Skill, 32 GB, 2x16, DDR4, orderable today.
+  It is priced absurdly (474.53 AUD against keyed truths at ~349) but the request
+  says nothing about price, and `judge.ts` never reads `priceAud`. Correcting my
+  earlier note: I assumed "a hardware chain, excluding it is right" — the recorded
+  page says otherwise.
+- **`scorptec.com.au/.../78085-f4-3600c16d-32gtznc`** — `G.Skill F4-3600C16D-32GTZNC
+  Trident Z Neo 32GB 3600MHz DDR4 | Scorptec`. **Same retailer as three keyed
+  truths**, same product family, unkeyed.
+- **`amazon.com.au/...B07Z86BMCQ`** — `G.Skill RipjawsV 2x16GB 3600 MHz DIMM DDR4`.
+  Right part; **stock state I could not determine** — the availability block's text
+  did not survive the recording in a form I could read by grep, and there is no
+  capture screenshot. Genuinely unresolved, not quietly assumed.
+
+**Neither Bunnings nor Amazon has a capture screenshot at all** (`capture/` has no
+record for either URL), so they cannot be adjudicated the way the books-v1 and
+ram-v1 audits were. That is itself the gap: the key was certified against the shots
+it lists, and these pages have none.
+
+`mwave.com.au` product URLs are recorded with **zero-length bodies** — only its
+`trending/32gb-ddr4-ram` category page has content. So the mwave URL `ram-t6-07`
+submitted is both unkeyed *and* bodyless.
+
+## What this means for the ruling
+
+The unkeyed URLs are no longer a scoring curiosity. They are:
+
+1. **Deciding pass/fail** — the sole penalty on both truncated students.
+2. **Teaching the wrong lesson** — the pass came from removing matching products.
+3. **At least partly correct answers** — Bunnings on the request's literal terms.
+
+Still nothing changed on disk: `passMark`, weights, `MAX_SUBMISSIONS` and the key are
+untouched, and I did not move the `--max-turns` default off 35.
+
+## Burn
+
+2 episodes: 506 s + 600 s (killed) = **18.4 min**, ~39K output on the completed one,
+**$0 metered**. Cumulative RAM work across 08-12 / 08-19 / 08-26: 8 students.
+
+## Next
+
+1. **Rule on the three unkeyed product pages** — this now gates any honest RAM number.
+2. **Re-run 06 and 08 with a budget over 600 s** to convert the pass rate from 2-of-2
+   into 4-of-4 or find a real failure. The Bash tool caps at 600 s, so this needs
+   either a smaller `--max-turns` (~90) or a different invocation path.
+3. Compounding remains untested — the runner still exits on pass.
