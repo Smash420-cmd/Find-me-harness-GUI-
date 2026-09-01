@@ -447,3 +447,72 @@ untouched, and I did not move the `--max-turns` default off 35.
    into 4-of-4 or find a real failure. The Bash tool caps at 600 s, so this needs
    either a smaller `--max-turns` (~90) or a different invocation path.
 3. Compounding remains untested — the runner still exits on pass.
+
+---
+
+# T6d — 2026-09-02: the scoring asymmetry, and a correction to my own last note
+
+No ruling had landed (key still `certifiedAt: 2026-08-07`, 22 truths, no new
+commits), so this run started with analysis that costs no episodes.
+
+## Correction: Scorptec 78085 is SOLD OUT, not a missing truth
+
+On 2026-08-26 I listed `scorptec.com.au/.../78085-f4-3600c16d-32gtznc` as one of
+three "real product pages" that should be keyed. **I had only read its title.**
+Its recorded body says:
+
+```
+Delivery : sold out   AUS Delivery Sold Out   Retail + Click & Collect VIC - Clayton
+```
+
+So it is a genuine G.Skill 2x16GB DDR4 product page that **cannot be bought** — a
+ghost, not a truth. It should be keyed as an out-of-stock trap. (Its `$250` price
+is also the known `_visiblePrice` bug: every Scorptec row records 250.)
+
+That leaves the unkeyed picture as:
+
+| page | verdict from the recorded body |
+|---|---|
+| `bunnings` | **genuine buyable match** — `Marketplace \| Online only`, `$474.53`, `Add to Cart`, no sold-out marker |
+| `scorptec 78085` | **sold out** — should be a ghost trap |
+| `amazon B07Z86BMCQ` | **un-adjudicable** — buybox never entered the recording (settled `ad8c58b`) |
+
+Only **one** of the three is a correct answer the student is being punished for.
+
+## The real pathology: finding a correct page costs double missing one
+
+`weights` are `missedTruth: 1`, `unknownShown: 2`, on `scale = 23`. So:
+
+> **Submitting a correct-but-unkeyed page costs 2 — exactly twice what omitting a
+> real truth costs (1).**
+
+The scoring model reproduces **every score observed across all 8 students**, which
+is how I know this is the mechanism and not a story:
+
+| scenario | score | verdict | observed |
+|---|---|---|---|
+| 22 truths, nothing else | 1.0000 | PASS | — |
+| 21 truths, nothing else | 0.9565 | PASS | `ram-t6-01`, `ram-t6-07` sub3 |
+| 20 truths (the stated bar) | 0.9130 | PASS | — |
+| 22 truths + bunnings | 0.9130 | PASS | `ram-t6-05` |
+| 21 truths + bunnings | 0.8696 | **FAIL** | `ram-t6-06`, `ram-t6-08` |
+| 18 truths, nothing else | 0.8261 | **FAIL** | `ram-t6-07` sub1 |
+| 22 truths + bunnings + amazon | 0.8261 | **FAIL** | — |
+| 21 truths + 3 unkeyed | 0.6957 | **FAIL** | `ram-t6-07` sub2 |
+
+Two consequences worth ruling on:
+
+1. **A perfect truth sweep can still fail.** 22 of 22 truths plus two unkeyed pages
+   scores 0.8261. There is no amount of correctness that rescues it.
+2. **The real bar is not "20 of 22".** It is *20 of 22 truths **and at most one
+   unkeyed page***. `ram-t6-06` and `ram-t6-08` each had 21 of 22 truths and zero
+   traps — comfortably over the stated bar — and failed on one Bunnings URL.
+
+This is the mechanism behind T6c's "the exam rewards deleting correct answers".
+The student is not being irrational: at 2 points a pop, dropping a page it believes
+is correct is the score-maximising move.
+
+## What I did not change
+
+`passMark`, the weights, `MAX_SUBMISSIONS`, the key, and the `--max-turns` default
+are all untouched, as they have been every week. This is a ruling for Patrick.
