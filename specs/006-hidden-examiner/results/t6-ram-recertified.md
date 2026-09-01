@@ -590,3 +590,81 @@ the 36-URL list minus memoz — the trap disappears and the penalty drops from 4
 - **Passes at ~0.9429** -> compounding is real: it wrote a plan and a successor executed it.
 - **Repeats ~0.8857 or drifts** -> the T2/T3 finding holds; writing good notes is
   still not sufficient, which is what T3 already showed.
+
+## Episode 2: the prediction hit exactly — 0.9429 PASS
+
+| submission | truths | traps | unkeyed | score |
+|---|---|---|---|---|
+| 1 | 34/34 | 1 (memoz) | 2 | 0.8286 |
+| 2 | **34/34** | **0** | 1 | **0.9429 PASS** |
+
+Curve **0.8857 -> 0.9429**. That is the **first cross-episode improvement in this
+project's history** — T2 was flat-to-down, T3 plateaued, T4 and T6 passed inside a
+single episode so had no curve at all.
+
+It also did it on **95 tool calls against episode 1's 157**, in 593 s. Better score,
+40% less work.
+
+## But read the mechanism before calling it compounding
+
+Its `FINDINGS.md` plan was explicit: *"next episode: resubmit minus memoz."*
+**It did not do that.** Episode 2's first submission still contained memoz and
+scored 0.8286. Only after the judge marked it down did submission 2 drop memoz and
+pass.
+
+So, precisely:
+
+- **What compounded: world knowledge.** Episode 2 did not re-derive the world. It
+  reused the retailer list, the stock discriminators and the 36-URL board, which is
+  why it needed 95 calls instead of 157. That is real and it is new.
+- **What did NOT compound: the decision.** The one action its own notes told it to
+  take, it still needed the judge to confirm. Its notes made it *faster*, not
+  *righter*.
+
+That is a genuine but narrow result. It does not overturn T2/T3 so much as split
+them: notes transfer facts, they did not transfer the judgement call. **n=1** — one
+student, one episode transition.
+
+It did maintain its notes: `FINDINGS.md` was rewritten between episodes, with the
+stock discriminators tightened (e.g. scorptec's JSON-LD reclassified from
+"worthless signal" to "IS meaningful here").
+
+## The pass rests on an unresolved ruling
+
+The trap it dropped to pass is **memoz `2x16gb-2666-pc-ram`**, keyed `parse-trap` in
+all three exams — and that is **open ruling #4, outstanding since 2026-08-07**,
+where the proof screenshot shows a genuine 2x16GB DDR4 desktop kit. If memoz is
+really a product, this pass was bought by deleting a correct answer, and the T6c/T6d
+pathology swallows the T7 result whole.
+
+## The key contradicts itself across exams
+
+The one unkeyed URL remaining in the passing board is:
+
+```
+pcbyte.com.au/product/g-skill-32gb-2x16gb-f4-3600c16d-32gvkc-ripjaws-v-3600mhz-cl16-ddr4-ram-72183
+```
+
+Checked across all three exams in the same `key.json`:
+
+| exam | classification |
+|---|---|
+| `ddr4-gskill` | **TRUTH** (certified) |
+| `ddr4-open` | **UNKEYED** |
+| `ddr5-6000` | unkeyed (correctly — it is DDR4) |
+
+`ddr4-open` asks for *"a 32GB DDR4 kit of 2x16GB sticks... I can actually buy right
+now"*, and a G.Skill Ripjaws V 2x16GB DDR4-3600 plainly qualifies. **The same key
+certifies this URL as a truth in one exam and has no opinion on it in a broader one
+that subsumes it.** The student lost 2 points for submitting a page this key itself
+calls correct.
+
+This is no longer a judgement call about what counts as buyable. It is an internal
+contradiction, and it is worth auditing `ddr4-open`'s truth set against
+`ddr4-gskill`'s wholesale before anyone treats `ddr4-open` scores as meaningful.
+
+## Burn (T7)
+
+2 episodes, 598 s + 595 s = **19.9 min**, 254 turns, 85K output, both
+`subtype=success` (neither truncated). **$0 metered.** Note both episodes landed
+within 5 s of my 600 s tool ceiling — this exam does not fit a third episode per run.
