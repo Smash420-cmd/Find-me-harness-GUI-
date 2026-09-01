@@ -516,3 +516,77 @@ is correct is the score-maximising move.
 
 `passMark`, the weights, `MAX_SUBMISSIONS`, the key, and the `--max-turns` default
 are all untouched, as they have been every week. This is a ruling for Patrick.
+
+---
+
+# T7 — 2026-09-02: the first real compounding test, on `ddr4-open`
+
+`ddr4-gskill` cannot answer the brief's actual question ("does anything compound
+across episodes") because students pass in episode 1 and **the runner exits on
+pass**. So this run moved to `ddr4-open` — 34 truths, must show 31, zero traps,
+request *"find me a 32GB DDR4 kit of 2x16GB sticks for my desktop that I can
+actually buy right now"*. **It has never been run before.** Fresh student
+`ram-open-01`, `--max-turns 120`, Opus.
+
+## Episode 1: found EVERY truth and still failed
+
+| submission | truths | traps | unkeyed | score |
+|---|---|---|---|---|
+| 1 | 22/34 | 1 | 0 | 0.6000 |
+| 2 | **34/34** | 1 | 2 | 0.8286 |
+| 3 | **34/34** | 1 | 1 | **0.8857** — fail |
+
+`scale = 35`. Submission 3 carries **zero missed truths**; its entire penalty is
+one trap (weight 2) plus one unkeyed page (weight 2) = 4, giving `1 - 4/35`.
+
+**A perfect 34-of-34 truth sweep still fails.** This is the T6d asymmetry at full
+strength: the student cannot pass by being more correct, only by removing things.
+
+Episode 1 did not pass, so episodes continue — which is exactly the condition
+needed to measure compounding, and the condition `ddr4-gskill` never provides.
+
+Burn: 598 s, 158 turns, 45.7K output, 157 tool calls, `subtype=success` (it was
+not truncated). That is 2 s under my 600 s tool ceiling.
+
+## The student wrote a real handoff document
+
+Its workspace contains `FINDINGS.md`, 33 lines, unprompted. Abridged:
+
+```
+## Scores
+- 23 urls -> 0.60 ("much missing" + 1 bad)
+- 37 urls (...) -> 0.8286 (1 bad)
+- 36 urls (dropped amazon) -> 0.8857 (still 1 bad)
+
+## Still-bad candidate (drop ONE of these next time, start with memoz)
+- memoz.com.au/product/2x16gb-2666-pc-ram/ (WooCommerce "3 in stock", generic
+  Memoz-brand - most likely the non-product)
+
+## World facts (verified)
+- mwave product pages return EMPTY body; techbuy /p/... 404.
+- amazon.com.au page exists but has no price/buybox/availability -> not for sale.
+
+## Stock discriminators
+- centrecom: stock table row "Online | In Stock" ... hidden boilerplate on EVERY page - ignore it.
+- msy/umart/pcbyte: near id="add_product_btn" -> "Add To Cart" = in stock; "Notify Me When Available!" = OUT.
+- schema.org InStock in JSON-LD is ALWAYS present - worthless signal.
+
+## Final 36-url list is in the last submission; next episode: resubmit minus memoz.
+```
+
+Two of those it discovered **independently of me, and they match findings I
+committed earlier**: Amazon has no buybox in the recording (`ad8c58b`), and mwave
+product bodies are empty (`1038d76`). It also fingered **memoz
+`2x16gb-2666-pc-ram`** — which is open ruling #4, outstanding since 2026-08-07.
+
+## Pre-registered prediction for episode 2
+
+Recording this *before* running it, so the result cannot be read post-hoc.
+
+If the student reads its own `FINDINGS.md` and executes its stated plan — resubmit
+the 36-URL list minus memoz — the trap disappears and the penalty drops from 4 to
+2, giving `1 - 2/35` = **0.9429, a pass**.
+
+- **Passes at ~0.9429** -> compounding is real: it wrote a plan and a successor executed it.
+- **Repeats ~0.8857 or drifts** -> the T2/T3 finding holds; writing good notes is
+  still not sufficient, which is what T3 already showed.
