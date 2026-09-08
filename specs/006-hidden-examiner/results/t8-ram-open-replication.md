@@ -79,4 +79,75 @@ itself in that direction. The defect is omission, not inversion.
 
 ## Results
 
-(episodes appended below as they land)
+### ep1 — 0.7714 FAIL, with a PERFECT 34/34 truth sweep
+
+`subtype=success`, `is_error=false`, `num_turns=214`, 213 tool calls, 766 s.
+**Not truncated** - checked on the stream's final `result` event, per the T6b rule.
+(Note `num_turns=214` against `--max-turns 120`: the cap still does not bind the
+way the flag reads. Same observation as the T6 notes; not re-opened here.)
+
+Three submissions, scored by hand against `key.json`:
+
+| sub | urls | truths | traps | unkeyed | score |
+|---|---|---|---|---|---|
+| 1 | 26 | 23/34 | 1 | 2 | - |
+| 2 | 35 | 32/34 | 1 | 2 | - |
+| 3 | 38 | **34/34** | 1 | 3 | **0.7714** |
+
+Hand-check of the reported 0.7714, using the T6d weights (`trap 2`,
+`unknownShown 2`, `missedTruth 1`, scale 35):
+`35 - 2 (memoz trap) - 6 (3 unkeyed) = 27`, and `27/35 = 0.771428...` **Exact
+match.** The runner's number is confirmed, not trusted.
+
+### The finding: it scored WORSE than T7 because it was MORE thorough
+
+| | truths found | traps | unkeyed | score |
+|---|---|---|---|---|
+| T7 `ram-open-01` ep1 | 34/34 | 1 (memoz) | 1 | 0.8857 |
+| T8 `ram-open-02` ep1 | 34/34 | 1 (memoz) | **3** | **0.7714** |
+
+Identical truth coverage. Identical trap. The entire 0.1143 gap is **two extra
+correct-but-unkeyed pages**. The student was docked 4 points for finding more of
+the catalogue.
+
+And this is not an argument about taste - **look at what the three unkeyed pages
+actually are:**
+
+1. `pcbyte.com.au/...ripjaws-v-3600mhz-cl16-ddr4-ram-72183` - **certified TRUTH in
+   `ddr4-gskill`**
+2. `jbhifi.com.au/...g-skill-trident-z-neo-32gb-2x16gb-ddr4-3200mhz...` -
+   **certified TRUTH in `ddr4-gskill`**
+3. `bunnings.com.au/...trident-z-rgb-32gb-2x-16gb-ddr4-3200...` - evidenced
+   2026-09-02 as a genuine buyable match (`Marketplace | Online only`, `$474.53`,
+   `Add to Cart`, no sold-out marker)
+
+**Every single page this student was penalised for is one the project has already
+established is correct** - two of them by this same key's own certification, one
+by direct evidence from the recording. The pre-run audit predicted exactly these
+two; the run supplied them unprompted.
+
+**The audit and the episode are independent lines of evidence and they agree.**
+
+### A third, separate defect: the key is URL-fragment sensitive
+
+sub2 submitted `...desktop-ram?variant=40428679037129` (the exact string in
+`ddr4-gskill`'s truth list). sub3 submitted the same product as
+`...desktop-ram`, bare. Both landed as unkeyed in `ddr4-open`, but note that the
+bare form would **also** miss in `ddr4-gskill`, where the variant-suffixed form is
+the keyed truth. Matching is exact-string. A student that normalises a tracking
+parameter off a URL is marked wrong for the same page. Flagged, not fixed.
+
+### Scorecard against the pre-registration
+
+| # | prediction | outcome |
+|---|---|---|
+| 1 | ep1 fails, **0.83-0.90** | **MISSED** - failed, but **0.7714**, below the band |
+| 2 | ep1 includes the memoz trap | **HIT** |
+| 3 | ep2 > ep1, on fewer tool calls | pending |
+| 4 | ep2 sub1 still contains a rejected page | pending |
+
+Prediction 1 missed, and **the reason it missed is the finding**. I sized the band
+from T7's ep1 on the assumption that a perfect truth sweep sets the ceiling. It
+does not: with truth coverage maxed at 34/34, the score is determined entirely by
+how many *additional correct pages* the student is unlucky enough to find. The
+band was wrong because the metric does not behave the way I modelled it.
