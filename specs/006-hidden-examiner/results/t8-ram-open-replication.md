@@ -151,3 +151,115 @@ from T7's ep1 on the assumption that a perfect truth sweep sets the ceiling. It
 does not: with truth coverage maxed at 34/34, the score is determined entirely by
 how many *additional correct pages* the student is unlucky enough to find. The
 band was wrong because the metric does not behave the way I modelled it.
+
+
+### ep2 — 0.9429 PASS. The curve replicates, and the ceiling is the key's, not the student's.
+
+`subtype=success`, `is_error=false`, `num_turns=89`, 88 tool calls, 523 s.
+Not truncated.
+
+| sub | urls | truths | traps | unkeyed | score |
+|---|---|---|---|---|---|
+| 1 | 39 | 34/34 | 1 (memoz) | 4 | 0.7143 |
+| 2 | 35 | **34/34** | **0** | **1** | **0.9429** |
+
+Hand-checked: sub2 `35 - 2 = 33`, `33/35 = 0.942857...` Exact match.
+
+**The single page holding sub2 below a perfect score is
+`pcbyte.com.au/...ripjaws-v-3600mhz-cl16-ddr4-ram-72183` - a certified TRUTH in
+`ddr4-gskill`.**
+
+So the passing submission is: every truth found, no traps, and one "wrong" answer
+that this same key, signed `certifiedAt: 2026-08-07`, calls correct in the
+neighbouring exam. **Score it without the contradiction and it is 1.0000.**
+
+### Replication result
+
+| | ep1 | ep2 | tool calls |
+|---|---|---|---|
+| T7 `ram-open-01` | 0.8857 | **0.9429** PASS | 157 -> 95 |
+| T8 `ram-open-02` | 0.7714 | **0.9429** PASS | 213 -> 88 |
+
+**The curve replicates.** Two students, fresh ids, different ep1 paths and
+different ep1 scores, both improve across episodes and **both land on exactly
+0.9429.** Not approximately - identically.
+
+That convergence is the point. `0.9429` is `33/35`. Two independent runs stop 2
+points short of perfect, and in T8 the missing 2 points are provably one
+contradictory key entry. **0.9429 is the board's ceiling for a correct student,
+not the student's ceiling.** The T7 result should be re-read the same way: it was
+never a student improving toward 1.0; it was a student converging on the highest
+score this key permits.
+
+### Final scorecard against the pre-registration
+
+| # | prediction | outcome |
+|---|---|---|
+| 1 | ep1 fails, 0.83-0.90 | **MISSED** - 0.7714, below the band |
+| 2 | ep1 includes the memoz trap | **HIT** |
+| 3 | ep2 > ep1, on fewer tool calls | **HIT** - 0.7714 -> 0.9429, 213 -> 88 calls |
+| 4 | ep2 sub1 still contains a rejected page | **HIT** - sub1 kept memoz, 0.7143; only sub2 dropped it |
+
+3 of 4. Prediction 4 matters most: **the "notes made it faster, not righter"
+finding from T7 replicates exactly.** The student carried a written plan into ep2,
+still submitted the memoz trap in sub1, and only removed it after the judge
+marked it down. World knowledge transferred (88 calls vs 213). Judgement did not.
+n=2 now, not n=1.
+
+## What this run implies about the "enumerate the catalogue" question
+
+The brief asks me to flag, not fix, whether "show 31 of 34 truths" is the intended
+reading of *"find me a 32GB DDR4 kit ... that I can actually buy right now"*.
+This run makes the cost of that framing concrete rather than theoretical:
+
+- ep1 sub2 (32 truths, 2 unkeyed) and ep1 sub3 (34 truths, 3 unkeyed) **scored
+  identically at 0.7714.** Finding two more genuine products was worth exactly as
+  much as finding one more correct-but-unkeyed one cost.
+- The student read that tie and wrote in its own notes: *"bunnings marketplace
+  listing (added in sub3, score unchanged => likely bad)"*. **The metric taught it
+  to distrust a real, buyable listing.**
+- A user asking that question wants a few good kits. Returning the 3 best scores
+  0.1739 (recorded T6c). Returning all 38 findable pages, including 3 the project
+  has evidenced as genuine, scores 0.7714. Returning 35 - having deleted a correct
+  answer - passes.
+
+**The board rewards deleting correct answers.** That was inferred in T6c/T6d from
+score arithmetic; here it is observed end to end, with the student stating the
+inference in its own words.
+
+## Recommendation (no files changed)
+
+Nothing on disk was modified. `passMark`, weights and `MAX_SUBMISSIONS` are
+untouched, per the standing instruction.
+
+Ranked for Patrick:
+
+1. **Add `pcbyte 72183` and `jbhifi ...?variant=40428679037129` to `ddr4-open`'s
+   truths.** Not a judgement call - subsumption makes it forced. This alone turns
+   T8 ep2 into 1.0000 and is the difference between "graduation gate passed" and
+   "passed except for a key bug".
+2. **Rule on memoz `2x16gb-2666-pc-ram`** (open since 2026-08-07). Both T7 and T8
+   passes were bought by dropping it. If it is a real product, both passes are
+   contaminated.
+3. **Rule on bunnings and amazon `B07Z86BMCQ`.** Bunnings is evidenced buyable;
+   amazon is un-adjudicable until re-recorded through the Playwright DOM.
+4. **Decide whether URL matching should normalise query strings** - currently
+   `?variant=` vs bare is two different pages to the key.
+5. **Then rule on the enumeration framing.** Worth doing after 1-4, because fixing
+   the key changes what the framing actually costs.
+
+## Burn
+
+| | ep1 | ep2 | total |
+|---|---|---|---|
+| turns | 214 | 89 | 303 |
+| output tokens | 56,515 | 40,856 | 97,371 |
+| cache read | 20,510,726 | 4,127,521 | 24,638,247 |
+| wall clock | 766 s | 523 s | **21.5 min** |
+| metered $ | 0 | 0 | **$0** |
+
+Both episodes ran on Max via the `claude` CLI. **Quota was again not the
+constraint** - the whole test, two full episodes plus the audit, fit in a
+45-minute box with time to spare. ep1 at 766 s exceeded the 600 s Bash tool
+ceiling and had to be backgrounded; that is now the operational limit to plan
+around, not the quota.
