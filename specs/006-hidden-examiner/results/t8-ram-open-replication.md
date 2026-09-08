@@ -49,6 +49,34 @@ The 09-02 note recorded only `pcbyte`. **`jbhifi` is new.** Together they are
 penalty (4). This is not a judgement call; it is an internal contradiction in a
 key signed `certifiedAt: 2026-08-07`. **Nothing has been changed on disk.**
 
+### Subsumption is established from the requests themselves, not assumed
+
+- `ddr4-open`: *"find me a 32GB DDR4 kit of 2x16GB sticks for my desktop that I
+  can actually buy right now"*
+- `ddr4-gskill`: *"find me G.Skill 32GB DDR4 desktop RAM, 2x16GB, in stock
+  somewhere I can order today"*
+
+Every page satisfying the gskill predicate satisfies the open predicate - gskill
+adds a brand filter and nothing else. So all 22 gskill truths must be open
+truths. **20 of 22 are. Two are not.** That is the contradiction.
+
+### One apparent conflict, checked and cleared
+
+A full cross-exam scan found exactly one URL keyed TRUTH in one exam and TRAP in
+another:
+
+`centrecom.com.au/klevv-cras-x-rgb-32gb-2-x-16gb-ddr4-3600mhz-cl18-...` -
+truth in `ddr4-open`, trap in **both** `ddr4-gskill` and `ddr5-6000`.
+
+**This one is correct.** Klevv is not G.Skill and DDR4-3600 is not DDR5-6000, so
+it is a relevance trap in both narrower exams and a genuine truth in the open
+one. Recording it because it is the shape a real contradiction would take, and
+it is not one. The pcbyte/jbhifi pair is not of this shape: those are
+truth-in-narrow, **absent-from-broad**, which subsumption forbids.
+
+`truth in gskill AND trap in open = 0` - the key never actively contradicts
+itself in that direction. The defect is omission, not inversion.
+
 ## Results
 
 (episodes appended below as they land)
