@@ -263,3 +263,30 @@ constraint** - the whole test, two full episodes plus the audit, fit in a
 45-minute box with time to spare. ep1 at 766 s exceeded the 600 s Bash tool
 ceiling and had to be backgrounded; that is now the operational limit to plan
 around, not the quota.
+
+
+## Cascade: `ddr5-6000` audited too (cheap, no episodes)
+
+Time remained, so I ran the same structural checks on the third exam, which has
+never been run.
+
+Request: *"find me a 32GB DDR5-6000 kit (2x16GB) for a new desktop build that is
+genuinely available"*. 33 truths, 14 traps.
+
+- Overlap with `ddr4-open`'s truths: **0** - correct, the generations are disjoint.
+- Truths whose URL advertises DDR4 or a DDR4 speed (`ddr4`, `-3200`, `3600mhz`,
+  `2666`): **0**.
+- Truths with no `ddr5` in the URL: **0**.
+- Seller spread: centrecom 8, ple 7, scorptec 6, msy 4, umart 4, jbhifi 3,
+  computeralliance 1.
+
+**No defect found.** But state the limit honestly: the check that caught the
+`ddr4-open` bug was **subsumption**, and `ddr5-6000` has no subsumption partner -
+it is disjoint from both DDR4 exams rather than broader or narrower than either.
+So the strongest available test is not applicable here, and "clean" means "clean
+on every check that can be run without episodes", not "certified".
+
+One useful consequence for open ruling #2: memoz `2x16gb-2666-pc-ram` is keyed a
+trap in `ddr5-6000` as well, but it is a **DDR4-2666** part, so there it is
+correctly a trap whatever Patrick rules. **The memoz ruling only moves
+`ddr4-open` and `ddr4-gskill`.**
