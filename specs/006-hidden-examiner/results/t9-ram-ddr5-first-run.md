@@ -133,4 +133,44 @@ A student that excludes refurbished stock from a new build is being reasonable
 and would lose a point for it. **Flagging, not fixing** - this is a judgement
 call about the request, exactly the class of thing I do not decide.
 
-(third student appended below)
+### ram-d5-03 (third fresh student) — 0.8824 FAIL. Passing is not reliable here.
+
+`subtype=success`, 128 turns, 127 tool calls, 471 s.
+
+| sub | urls | truths | score |
+|---|---|---|---|
+| 1 | 19 | 19/33 | 0.5882 |
+| 2 | 27 | 27/33 | 0.8235 |
+| 3 | 29 | **29/33** | **0.8824 FAIL** |
+
+Still zero traps and zero unkeyed - **all three students went 3-for-3 on
+precision; not one submitted a single page the key rejects.** d5-03 simply found
+one truth fewer than the bar allows.
+
+**It ran out of submissions, not out of ability.** The curve 0.5882 -> 0.8235 ->
+0.8824 was still climbing when it hit `MAX_SUBMISSIONS: 3`. Contrast the
+`ddr4-open` students, which passed on submission 2 of 3.
+
+### Pass rate: 2 of 3. And the misses are the same pages every time.
+
+| missed truth | d5-01 | d5-02 | d5-03 |
+|---|---|---|---|
+| jbhifi corsair-vengeance-rgb | **miss** | **miss** | **miss** |
+| jbhifi kingston-fury-beast-...-white | **miss** | **miss** | **miss** |
+| jbhifi klevv-fit-v | found | **miss** | **miss** |
+| scorptec 113814 (refurbished) | **miss** | found | **miss** |
+
+10 misses across 3 students. **8 are JB Hi-Fi, 2 are the refurbished scorptec
+listing. Nothing else was ever missed by anyone.** Two JB pages were missed by
+all three.
+
+So `ddr5-6000` behaves like a 30-truth exam with a 3-truth JB Hi-Fi tail that
+Opus cannot reliably parse, plus one debatable refurbished unit. The bar of 30 of
+33 sits exactly on that tail, which is why two students land precisely on 0.9118
+and the third lands one point under. **The margin between pass and fail on this
+exam is entirely JB Hi-Fi HTML.**
+
+This is the T6 lesson again, from the other side: **passing once is not passing
+reliably** - and here the variance is not in the student's judgement (precision
+was perfect every time) but in whether it happened to crack one more 1.09 MB
+Shopify blob before its third submission.
