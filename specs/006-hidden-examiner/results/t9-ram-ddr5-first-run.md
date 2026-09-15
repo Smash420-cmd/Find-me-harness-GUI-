@@ -174,3 +174,84 @@ This is the T6 lesson again, from the other side: **passing once is not passing
 reliably** - and here the variance is not in the student's judgement (precision
 was perfect every time) but in whether it happened to crack one more 1.09 MB
 Shopify blob before its third submission.
+
+
+### ram-d5-03 ep2 — 0.9412 PASS. Compounding beat the one-shot ceiling.
+
+`subtype=success`, 125 turns, 124 tool calls, 578 s. Curve **0.8824 -> 0.9412**.
+
+| sub | urls | truths | score |
+|---|---|---|---|
+| 1 | 29 | 29/33 | 0.8824 |
+| 2 | 31 | **31/33** | **0.9412 PASS** |
+
+It opened ep2 by re-submitting its ep1 board (29 urls, exactly where it left off)
+and then **recovered two of the JB Hi-Fi pages it had missed** - the corsair and
+the klevv. Still missing: the JB kingston page and the refurbished scorptec unit.
+
+**This is the first time in the project that an episode-2 student beat what any
+one-shot student achieved.** d5-01 and d5-02 both topped out at 0.9118 in a
+single episode; d5-03 reached **0.9412** by continuing. The extra episode bought
+a second budget of 3 submissions and a second pass at the JB blobs, which is
+exactly where its deficit was.
+
+Its `notes.md` shows what carried over - a verified world model:
+
+> *"NO category/listing pages exist ... Only exact product URLs + a few cached
+> SERP pages resolve. Discovery channels that work: the `search` tool,
+> cat-staticice.html ... Corpus of 2x16GB DDR5-6000 product pages (45): PLE 8,
+> MSY 8, Umart 8, Scorptec 7, Centrecom 8, ComputerAlliance 1, CPL 1,
+> **JB Hi-Fi 2**"*
+
+Note the last figure: its own corpus recorded **2** JB Hi-Fi pages when the key
+has **3** truths there. The notes propagated an incomplete census, and the one JB
+truth absent from that census is the one it still missed in ep2. **World
+knowledge compounded, and so did a gap in it.** A sharper version of the T7/T8
+finding: notes transfer whatever they contain, errors included.
+
+## Summary — four episodes, three students, one exam
+
+| student | episodes | best | pass | traps | unkeyed |
+|---|---|---|---|---|---|
+| ram-d5-01 | 1 | 0.9118 | PASS | 0 | 0 |
+| ram-d5-02 | 1 | 0.9118 | PASS | 0 | 0 |
+| ram-d5-03 | 1 | 0.8824 | fail | 0 | 0 |
+| ram-d5-03 | 2 | **0.9412** | **PASS** | 0 | 0 |
+
+- **Precision was perfect in all 10 submissions.** Not one page was shown that
+  the key rejects - no traps, no unkeyed. On `ddr4-open` every penalised page was
+  a correct one; here there were no penalised pages at all beyond misses.
+- **`ddr5-6000` shows no sign of the `ddr4-open` key defect.** Pre-registered
+  prediction 3 is cleanly falsified. The omission bug looks local to
+  `ddr4-open`'s construction, not a property of the recording.
+- **Recall, not judgement, is the binding constraint**, and it is concentrated:
+  8 of 10 misses are JB Hi-Fi, 2 are the refurbished scorptec unit.
+- **Pass rate 2 of 3 at one episode; the one failure passed at two.**
+
+## Open items this run adds
+
+1. **Rule on `scorptec 113814`** - keyed a truth, genuinely in stock, but
+   **refurbished**, against a request for *"a new desktop build"*. Cost 2 of the
+   10 misses. Not a defect; a question about the request.
+2. **JB Hi-Fi pages are effectively a parsing wall** (~1.09 MB, stock state in
+   serialized JSON, with `Refurbished`/`Sold out`/`Unavailable`/`Pre-order` all
+   present as unrelated menu strings). 3 of 33 truths sit behind it and the pass
+   bar sits exactly on them. Worth deciding whether that is the intended
+   difficulty or an artefact of recording Shopify pages.
+3. Unchanged and still blocking from T8: **add `pcbyte 72183` and
+   `jbhifi trident-z-neo` to `ddr4-open`'s truths** (subsumption forces it), and
+   **rule on memoz `2x16gb-2666-pc-ram`**.
+
+## Burn
+
+| | d5-01 | d5-02 | d5-03 ep1 | d5-03 ep2 | total |
+|---|---|---|---|---|---|
+| turns | 102 | 127 | 128 | 125 | **482** |
+| output tokens | 18,880 | 24,474 | 37,045 | 41,331 | **121,730** |
+| wall clock | 216 s | 300 s | 471 s | 578 s | **26.1 min** |
+| metered $ | 0 | 0 | 0 | 0 | **$0** |
+
+Four episodes inside one 45-minute box. `ddr5-6000` episodes run **216-578 s**
+against `ddr4-open`'s 523-766 s, so this exam is roughly half the cost per
+episode, and every episode stayed under the 600 s Bash ceiling. **Quota was again
+not the constraint.**
