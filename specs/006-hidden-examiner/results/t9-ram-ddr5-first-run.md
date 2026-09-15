@@ -80,4 +80,57 @@ Prediction 3 was the substantive one and it is cleanly falsified: **no evidence 
 a key omission in `ddr5-6000`.** The `ddr4-open` defect looks local to that exam's
 construction, not a property of the whole recording.
 
-(further students / adjudication of the 3 missed truths appended below)
+### ram-d5-02 (second fresh student) — 0.9118 PASS, identical score
+
+`subtype=success`, 127 turns, 126 tool calls, 300 s.
+
+| sub | urls | truths | score |
+|---|---|---|---|
+| 1 | 7 | 7/33 | 0.2353 |
+| 2 | 29 | 29/33 | 0.8824 FAIL |
+| 3 | 30 | **30/33** | **0.9118 PASS** |
+
+Zero traps and zero unkeyed pages again. **Two independent students, different
+paths (2 vs 3 submissions, 101 vs 126 tool calls), land on exactly 0.9118.**
+sub1 was 7 urls for both - the same "shortlist first" reading of the request.
+
+### What the misses are: a JB Hi-Fi discoverability wall, not a key defect
+
+| missed truth | d5-01 | d5-02 |
+|---|---|---|
+| jbhifi `corsair-vengeance-rgb-6000mhz-...-2x16gb-grey` | missed | missed |
+| jbhifi `kingston-fury-beast-ddr5-rgb-...-cl36-ram-white` | missed | missed |
+| jbhifi `klevv-fit-v-32gb-...-cl28-...-black` | found | missed |
+| scorptec `113814-kf560c36bbe2ak2-32` | missed | found |
+
+`ddr5-6000` has exactly **3 JB Hi-Fi truths**. d5-01 missed 2 of them, d5-02
+missed **all 3**. Of the 8 total misses across both students, **7 are JB Hi-Fi.**
+
+This is a property of the recording, not of the key or the students. The JB pages
+are ~1.09 MB Shopify blobs whose stock state is buried in serialized JSON
+(`dimension7: 'In stock'`, `variants:[{...price:68900...}]`) with `Refurbished`,
+`Sold out`, `Unavailable` and `Pre-order` all appearing elsewhere in the same
+document as unrelated menu strings. Neither student was penalised for anything it
+showed - **the entire residual on this exam is JB Hi-Fi parsing.**
+
+Traced in the stream: **d5-01 never mentioned any of its three missed URLs at
+all.** They were not fetched and rejected; they were never reached. Both are
+reachable in-world - the corsair page is linked from the recorded staticice
+search, the kingston page from the recorded Google search, and scorptec 113814
+from the recorded scorptec category page.
+
+### One relevance question for Patrick (not a defect)
+
+`scorptec 113814` is keyed a **truth**, and its recorded body does show
+`"availability":"https://schema.org/InStock"`, `aria-label="Add to cart"` and
+`"price": "699"`. But its own meta description reads *"Kingston FURY Beast RGB
+Black 32GB 6000MHz DDR5, CL36, **Refurbished**, Dual Kit, XMP 3.0"*, and the
+request asks for a kit *"for a new desktop build"*. Its capture also carries
+`_visiblePrice: 250` against a page price of 699 - the known `_visiblePrice` bug,
+already on record.
+
+A student that excludes refurbished stock from a new build is being reasonable
+and would lose a point for it. **Flagging, not fixing** - this is a judgement
+call about the request, exactly the class of thing I do not decide.
+
+(third student appended below)
