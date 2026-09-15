@@ -128,7 +128,7 @@ two; the run supplied them unprompted.
 
 **The audit and the episode are independent lines of evidence and they agree.**
 
-### A third, separate defect: the key is URL-fragment sensitive
+### ~~A third, separate defect: the key is URL-fragment sensitive~~ — RETRACTED 2026-09-16
 
 sub2 submitted `...desktop-ram?variant=40428679037129` (the exact string in
 `ddr4-gskill`'s truth list). sub3 submitted the same product as
@@ -136,6 +136,12 @@ sub2 submitted `...desktop-ram?variant=40428679037129` (the exact string in
 bare form would **also** miss in `ddr4-gskill`, where the variant-suffixed form is
 the keyed truth. Matching is exact-string. A student that normalises a tracking
 parameter off a URL is marked wrong for the same page. Flagged, not fixed.
+
+> **RETRACTED 2026-09-16.** Wrong. `src/exam/judge.ts:78` normalises every URL
+> (`u.replace(/[#?].*$/, "").replace(/\/+$/, "").toLowerCase()`) before matching,
+> so the bare and `?variant=` jbhifi URLs are the same page to the judge. I scored
+> T8 with exact strings; the numbers still match because jbhifi is absent from
+> `ddr4-open` in either form. Recommendation 4 below is withdrawn.
 
 ### Scorecard against the pre-registration
 
@@ -243,8 +249,8 @@ Ranked for Patrick:
    contaminated.
 3. **Rule on bunnings and amazon `B07Z86BMCQ`.** Bunnings is evidenced buyable;
    amazon is un-adjudicable until re-recorded through the Playwright DOM.
-4. **Decide whether URL matching should normalise query strings** - currently
-   `?variant=` vs bare is two different pages to the key.
+4. ~~Decide whether URL matching should normalise query strings~~ - **withdrawn
+   2026-09-16**: `judge.ts:78` already does.
 5. **Then rule on the enumeration framing.** Worth doing after 1-4, because fixing
    the key changes what the framing actually costs.
 
