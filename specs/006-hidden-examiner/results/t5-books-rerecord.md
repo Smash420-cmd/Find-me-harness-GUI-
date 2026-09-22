@@ -204,3 +204,110 @@ needs **at least 9 real, bodied truths**. Today's candidates yield 5.
    URLs won't help.
 3. Write the proposed key as a **separate draft file**, not over `key.json`, for
    Patrick to sign.
+
+## Slice 2, started the same run (09:08 onwards): round 2 widens the board to 9
+
+Slice 1 finished at 09:08 with 37 minutes left, so I continued. The binding
+gap was **board width**: 5 real truths against the 9 needed to tolerate a miss.
+
+### Round-2 candidates: different domains, not re-guessed URLs
+
+Checked with `curl`, this time also grepping each body for the ISBN and page
+title, so an Indigo-style redirect to a homepage would show up before
+recording:
+
+| seller | market | curl | ISBN in body | verdict before recording |
+|---|---|---|---|---|
+| Amazon AU `dp/0735211299` | AU | 200 | 0 (ASIN page) | record |
+| Amazon UK `dp/0735211299` | UK | 200 | 3 | record |
+| Amazon CA `dp/0735211299` | CA | 200 | 3 | record |
+| Angus & Robertson | AU | 200 | 45 | record |
+| Readings | AU | 200 | 27 | record |
+| AbeBooks `.../plp` | US | 200 | 71 | record as **trap** - multi-seller listing |
+| Mighty Ape AU | AU | 403 | - | skip (ID guessed) |
+| Wordery | UK | 404 | - | skip |
+| WHSmith | UK | timeout | - | skip |
+| uk.bookshop.org | UK | 403 "Just a moment" | - | skip |
+| Better World Books | US | 403 "Just a moment" | - | skip |
+| Kinokuniya AU | AU | 404 | - | skip |
+
+Recorded with a partial recorder (`record-new.mjs`, in the Relay task dir). It
+fetches and shoots **only the new URLs** and appends them to `urls.json` and
+`manifest.json`. A full re-run of `record-urls.mjs` would re-fetch Third
+Place, whose body only came through the render fallback, and a 403 on that
+second attempt would overwrite the good body with an error. Only the
+key-drafting scripts read `manifest.json`; the exam runtime reads `fetch/`. All
+six got bodies and shots. `urls.json` now has 26 items.
+
+### Round-2 shots, adjudicated
+
+| page | shot | proposed |
+|---|---|---|
+| **Amazon AU** | Hardcover **$35.00**, **In stock**, Add to cart | **truth** |
+| **Amazon CA** | Hardcover **CA$27.00**, **Buy New**, delivery Sat 26 Sept | **truth** - first CA page |
+| **Angus & Robertson** | **Hardback**, 16/10/2018, **$48.75**, **Buy Now**, "In Stock with our Supplier ... 1-2 weeks" | **truth** |
+| **Readings** | **HARDBACK**, ISBN 9780735211292, **$53.99**, **ADD TO CART**; in-shop "Out of stock", shipping "Available to order, ships in 1-2 weeks" | **truth, flagged** - same class as the Christianbook backorder kept as truth on 2026-08-07 |
+| **Amazon UK** | Hardcover selected, but the default buybox is **"Buy Used: AUD 18.69 ... Used: Very Good, Sold by Brit_Books, Only 1 left"** | **`oem-opaque` trap** - same class as HPB (used hardcover), per the existing ruling |
+| AbeBooks | not opened | draft `category-page` trap |
+
+The DOM got it wrong again: Amazon AU's `_visiblePrice` is `15.99` (the Kindle
+price), and Readings' `_outOfStock` is `true` (the in-shop line).
+
+**Still no UK truth.** The only UK page with a body sells the hardcover used.
+
+Two things Patrick should know before signing:
+- **Booktopia and Angus & Robertson are the same group** (Booktopia owns A&R),
+  at the same $48.75. They are separate storefronts and URLs, but not
+  independent sellers.
+- **Three of the nine are Amazon** (US, AU, CA): the same product in three
+  markets. That adds market spread, not retailer diversity.
+
+### Draft key: 9 truths, 12 traps - `worlds/books-v1/key.draft-2026-09-23.json`
+
+A separate file. `key.json` is untouched. The draft has **no `certifiedAt` or
+`certifiedBy`**, and `loadKey()` refuses to load it ("*not certified - a human
+must audit it first (Spec 006 C7)*"). That guard is correct and I did not work
+around it on disk.
+
+- **Truths (9):** the 3 certified (Amazon US, Christianbook, B&N) + Booktopia,
+  Third Place, Amazon AU, Amazon CA, Angus & Robertson, Readings.
+  **Markets: US 4, AU 4, CA 1, UK 0.**
+- **Traps (12):** the 10 certified, **minus Third Place** (promoted), **plus**
+  Amazon UK (`oem-opaque`), Indigo (`dead-link`), AbeBooks (`category-page`).
+- The 5 bodyless round-1 drafts (Dymocks, Waterstones, Blackwell's,
+  Bookshop.org, Powell's) are **left unkeyed**. They have no body, so no student
+  can find them, and keying them changes no score.
+
+I also corrected the roles of **my own** two failed drafts in `urls.json`
+(Indigo -> `trap:dead-link`, Amazon UK -> `trap:oem-opaque`) with the shot
+evidence in their notes. The certified originals' roles are untouched.
+
+### Verified through the real judge (in memory, not via `loadKey`)
+
+| submission | key | score |
+|---|---|---|
+| all 9 truths | draft | **1.0 PASS** |
+| 8 of 9 | draft | **0.9 PASS** - one miss is now survivable |
+| 7 of 9 | draft | 0.8 fail |
+| all 9 + Amazon UK (used) | draft | **0.8 fail** |
+| **3/3 truths + Third Place (genuine)** | **certified** | **0.5 fail** |
+
+Two readings:
+- **The draft does what T5 asked for.** A 9-truth board tolerates exactly one
+  miss, and the T5 question ("board too wide to enumerate") can finally be
+  asked.
+- **The T6d asymmetry carries over.** A perfect sweep plus one used page
+  fails, because one wrong page costs 2 and the bar allows 1. On this board a
+  student can afford to miss a seller but cannot afford to include a
+  questionable one.
+- **The stale certified key is not a theoretical risk:** a perfect answer plus
+  one genuine bookshop scores **0.5**.
+
+## Slice status after this run
+
+| slice | work | status |
+|---|---|---|
+| 1 | back up, widen, re-record | **done** |
+| 2 | review shots, draft key | **mostly done**: 9 truths + all round-2 shots adjudicated; draft key written. **Left:** open the 4 unreviewed bodyless shots, the AbeBooks shot, and the traps' new shots, and fill `REVIEW-KEY.md` |
+| 3 | Patrick certifies | **needs him**: Readings (backorder class), Amazon UK (used), the Booktopia/A&R group, 3x Amazon |
+| 4 | re-run T4 on the certified 9-truth board | after 3 |
