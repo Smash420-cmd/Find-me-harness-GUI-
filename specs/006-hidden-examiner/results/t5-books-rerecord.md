@@ -248,7 +248,7 @@ six got bodies and shots. `urls.json` now has 26 items.
 | **Angus & Robertson** | **Hardback**, 16/10/2018, **$48.75**, **Buy Now**, "In Stock with our Supplier ... 1-2 weeks" | **truth** |
 | **Readings** | **HARDBACK**, ISBN 9780735211292, **$53.99**, **ADD TO CART**; in-shop "Out of stock", shipping "Available to order, ships in 1-2 weeks" | **truth, flagged** - same class as the Christianbook backorder kept as truth on 2026-08-07 |
 | **Amazon UK** | Hardcover selected, but the default buybox is **"Buy Used: AUD 18.69 ... Used: Very Good, Sold by Brit_Books, Only 1 left"** | **`oem-opaque` trap** - same class as HPB (used hardcover), per the existing ruling |
-| AbeBooks | not opened | draft `category-page` trap |
+| AbeBooks | *(opened later - see below)* | ~~`category-page`~~ -> **`oem-opaque`**: it sells new too |
 
 The DOM got it wrong again: Amazon AU's `_visiblePrice` is `15.99` (the Kindle
 price), and Readings' `_outOfStock` is `true` (the in-shop line).
@@ -273,7 +273,7 @@ around it on disk.
   Third Place, Amazon AU, Amazon CA, Angus & Robertson, Readings.
   **Markets: US 4, AU 4, CA 1, UK 0.**
 - **Traps (12):** the 10 certified, **minus Third Place** (promoted), **plus**
-  Amazon UK (`oem-opaque`), Indigo (`dead-link`), AbeBooks (`category-page`).
+  Amazon UK (`oem-opaque`), Indigo (`dead-link`), AbeBooks (drafted `category-page`, **corrected to `oem-opaque`** below).
 - The 5 bodyless round-1 drafts (Dymocks, Waterstones, Blackwell's,
   Bookshop.org, Powell's) are **left unkeyed**. They have no body, so no student
   can find them, and keying them changes no score.
@@ -311,3 +311,31 @@ Two readings:
 | 2 | review shots, draft key | **mostly done**: 9 truths + all round-2 shots adjudicated; draft key written. **Left:** open the 4 unreviewed bodyless shots, the AbeBooks shot, and the traps' new shots, and fill `REVIEW-KEY.md` |
 | 3 | Patrick certifies | **needs him**: Readings (backorder class), Amazon UK (used), the Booktopia/A&R group, 3x Amazon |
 | 4 | re-run T4 on the certified 9-truth board | after 3 |
+
+### Two traps that may now be truths: the marketplace question (09:14)
+
+Bodyless pages can't be found, so their roles cannot change a score. The risk
+that matters is a page that **now has a body** having flipped from trap to
+genuine, the way Third Place did. Two had:
+
+- **ThriftBooks** (certified `oem-opaque`, "used-book marketplace, condition
+  varies"; it was bodyless in July). The new 848 KB body reads: *"Select
+  Condition: Like New $13.29 / Very Good $12.89 / Good $11.29 / Acceptable
+  $10.59 / **New $20.49**"*, with Add to Cart; *"Recommended Format: Hardcover
+  Condition: Like New $13.29 ... Only 4 Left"*. **A new hardcover is buyable,**
+  though the default selection is used. There is no shot: capture fails with
+  `page.goto: Download is starting`, in July and again today.
+- **AbeBooks** - **my own pre-recording call was wrong.** I had drafted it as a
+  `category-page` ("multi-seller listing"). The shot shows the hardcover's ISBN
+  product page (*"Hardcover, ISBN 13: 9780735211292, Publisher: Avery, 2018"*)
+  with **"Buy Used US$ 7.23"** *and* **"Buy New US$ 26.04 ... Add to basket ...
+  Ships from U.S.A. to Australia"**. Re-keyed in the draft as `oem-opaque`.
+  Both categories weigh 2, so no score changes.
+
+With Amazon UK, that makes **three marketplace pages whose default offer is
+used but which also sell the new hardcover**. The draft keys all three
+`oem-opaque`, consistent with the certified HPB ruling ("USED hardcover -
+judgment call: is used a valid 'buy new'? magistrate rules"). **That is one
+question for Patrick, not three:** *does a marketplace page that also sells new
+count as "buy new right now"?* If yes, the board goes from 9 to up to 12 truths,
+and the draft's `openQuestion` field records it.
