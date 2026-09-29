@@ -339,3 +339,41 @@ judgment call: is used a valid 'buy new'? magistrate rules"). **That is one
 question for Patrick, not three:** *does a marketplace page that also sells new
 count as "buy new right now"?* If yes, the board goes from 9 to up to 12 truths,
 and the draft's `openQuestion` field records it.
+
+## 2026-09-30 — no signature yet; the UK gap is partly structural
+
+No key was signed and no ruling landed, so, per the slice plan, **no student ran
+on `books-v1`**. `worlds/books-v1/key.json` is still `certifiedAt: 2026-08-07`
+(3 truths / 10 traps), and the draft is unchanged. Nothing on disk was
+modified this run.
+
+The only cheap open item was the missing UK truth, so I tested why UK sellers
+keep failing before hunting for more of them.
+
+**Verified:**
+- **Amazon UK sells the UK edition under its own ISBN.** `amazon.co.uk/dp/1847941834`
+  is ISBN **9781847941831**, *"Atomic Habits: The life-changing million-copy #1
+  bestseller"*, Cornerstone Press. The shot (scratch dir, not the world) shows
+  **Format: Paperback**, with a **Hardcover swatch "from AUD 43.55"** alongside
+  it. The UK hardcover exists as a separate product.
+- **Amazon UK's buybox rotates.** The US-ISBN page `amazon.co.uk/dp/0735211299`,
+  fetched live today, reads *"In stock"* with add-to-cart and **zero "Buy
+  Used"**. On 2026-09-23 the recorded shot defaulted to **"Buy Used ... Brit_Books"**.
+  So whether that page is a truth or `oem-opaque` depends on the minute it was
+  recorded. The key must follow the **frozen** shot, so the draft's
+  `oem-opaque` stands. But the marketplace ruling is really a ruling about a
+  moving target.
+
+**Not verified:** the UK hardcover's ISBN. My one extraction attempt picked up a
+sponsored-ad link (`1398725641`, an unrelated title), and I stopped there
+rather than guess.
+
+**What it implies (a question, not a change):** the key pins identity to the
+**US Avery ISBN 9780735211292** (`urls.json`: *"Identity = ISBN 9780735211292
+(hardcover)"*). The request only says *"the hardcover of Atomic Habits by James
+Clear"*. UK shops sell a UK edition with different ISBNs, so under the current
+pin **a UK truth mostly cannot exist**, however many UK sellers are tried.
+That puts the pin in tension with the region-free goal (Spec 005). **For
+Patrick: does "the hardcover" mean the US ISBN only, or any hardcover edition?**
+If any edition counts, the UK hardcover sellers become candidates, and so do
+the walled UK shops once a reachable domain is found.
